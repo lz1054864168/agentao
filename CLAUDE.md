@@ -258,10 +258,24 @@ Supports: `1`, `2`, `3`, `Esc`, `Ctrl+C`. Invalid keys are silently ignored.
 Persistent JSON storage in `.chatagent_memory.json` (gitignored):
 ```python
 # tools/memory.py
-{"key": {"value": "...", "tags": [...], "timestamp": "..."}}
+{"memories": [{"key": "...", "value": "...", "tags": [...], "timestamp": "..."}]}
 ```
 
-Accessible via `save_memory` tool.
+**Available Tools:**
+- `save_memory` - Save/update memories
+- `search_memory` - Search by keyword
+- `delete_memory` - Delete specific memory
+- `clear_all_memories` - Clear all memories
+- `filter_memory_by_tag` - Filter by tag
+
+**CLI Commands:**
+- `/memory` or `/memory list` - List all memories
+- `/memory search <query>` - Search memories
+- `/memory tag <tag>` - Filter by tag
+- `/memory delete <key>` - Delete specific memory
+- `/memory clear` - Clear all (with confirmation)
+
+See `docs/features/memory-management.md` for detailed documentation.
 
 ## File Organization
 

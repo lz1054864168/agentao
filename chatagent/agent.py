@@ -18,11 +18,17 @@ from .tools import (
     WebFetchTool,
     GoogleSearchTool,
     SaveMemoryTool,
+    SearchMemoryTool,
+    DeleteMemoryTool,
+    ClearMemoryTool,
+    FilterMemoryByTagTool,
+    ListMemoryTool,
     CLIHelpAgentTool,
     CodebaseInvestigatorTool,
     ActivateSkillTool,
 )
 from .skills import SkillManager
+from .context_manager import ContextManager, is_context_too_long_error
 
 
 class ChatAgent:
@@ -34,6 +40,10 @@ class ChatAgent:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         confirmation_callback: Optional[Callable[[str, str, Dict[str, Any]], bool]] = None,
+        recall_callback: Optional[Callable[[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]] = None,
+        max_context_tokens: int = 200_000,
+        step_callback: Optional[Callable[[Optional[str], Dict[str, Any]], None]] = None,
+        thinking_callback: Optional[Callable[[str], None]] = None,
     ):
         """Initialize chat agent.
 
@@ -43,11 +53,28 @@ class ChatAgent:
             model: Model name to use
             confirmation_callback: Optional callback for tool confirmation.
                                    Takes (tool_name, tool_description, tool_args) and returns bool
+            recall_callback: Optional callback for memory recall confirmation.
+                             Takes (recalled_memories) and returns confirmed list or None to skip
+            max_context_tokens: Maximum context window tokens (default 200K)
+            step_callback: Optional callback called before/after each tool execution.
+                           Takes (tool_name, tool_args); tool_name=None means reset to Thinking...
+            thinking_callback: Optional callback called when LLM produces reasoning text
+                               before tool calls. Takes the reasoning string.
         """
         self.llm = LLMClient(api_key=api_key, base_url=base_url, model=model)
         self.skill_manager = SkillManager()
         self.memory_tool = SaveMemoryTool()
         self.confirmation_callback = confirmation_callback
+        self.recall_callback = recall_callback
+        self.step_callback = step_callback
+        self.thinking_callback = thinking_callback
+
+        # Initialize context manager
+        self.context_manager = ContextManager(
+            llm_client=self.llm,
+            memory_tool=self.memory_tool,
+            max_tokens=max_context_tokens,
+        )
 
         # Initialize tool registry
         self.tools = ToolRegistry()
@@ -90,6 +117,11 @@ class ChatAgent:
             WebFetchTool(),
             GoogleSearchTool(),
             self.memory_tool,
+            SearchMemoryTool(self.memory_tool),
+            DeleteMemoryTool(self.memory_tool),
+            ClearMemoryTool(self.memory_tool),
+            FilterMemoryByTagTool(self.memory_tool),
+            ListMemoryTool(self.memory_tool),
             CLIHelpAgentTool(),
             CodebaseInvestigatorTool(),
             ActivateSkillTool(self.skill_manager),
@@ -98,8 +130,11 @@ class ChatAgent:
         for tool in tools_to_register:
             self.tools.register(tool)
 
-    def _build_system_prompt(self) -> str:
+    def _build_system_prompt(self, recalled_context: Optional[str] = None) -> str:
         """Build system prompt for the agent.
+
+        Args:
+            recalled_context: Optional recalled memory context to inject
 
         Returns:
             System prompt string
@@ -170,6 +205,20 @@ Always be helpful, accurate, and efficient."""
         if skills_context:
             prompt += "\n\n" + skills_context
 
+        # Instruct LLM to show reasoning when thinking_callback is active
+        if self.thinking_callback:
+            prompt += (
+                "\n\n=== Reasoning Requirement ===\n"
+                "Before each tool call (or set of tool calls), write 1-3 sentences explaining "
+                "your reasoning: what you are doing and why. Be concise and direct. "
+                "This reasoning will be shown to the user as your thought process."
+            )
+
+        # Inject recalled memories if provided
+        if recalled_context:
+            prompt += "\n\n=== Relevant Memories (recalled for this message) ===\n"
+            prompt += recalled_context
+
         return prompt
 
     def add_message(self, role: str, content: str):
@@ -180,6 +229,46 @@ Always be helpful, accurate, and efficient."""
             content: Message content
         """
         self.messages.append({"role": role, "content": content})
+
+    def _try_recall_memories(self, user_message: str) -> Optional[str]:
+        """Attempt to recall relevant memories for the current user message (Agentic RAG).
+
+        Args:
+            user_message: The user's current message
+
+        Returns:
+            Formatted string of relevant memories for injection, or None if none recalled
+        """
+        try:
+            all_memories = self.memory_tool.get_all_memories()
+            if not all_memories:
+                return None
+
+            relevant = self.context_manager.recall_relevant_memories(
+                user_message, all_memories
+            )
+
+            if not relevant:
+                return None
+
+            # If recall_callback is set, ask user to confirm injection
+            if self.recall_callback:
+                confirmed = self.recall_callback(relevant)
+                if confirmed is None:
+                    return None
+                relevant = confirmed
+
+            if not relevant:
+                return None
+
+            lines = ["[Recalled Memories]"]
+            for mem in relevant:
+                lines.append(f"• {mem['key']}: {mem['value']}")
+            return "\n".join(lines)
+
+        except Exception as e:
+            self.llm.logger.warning(f"Memory recall failed: {e}")
+            return None
 
     def clear_history(self):
         """Clear conversation history and deactivate all skills."""
@@ -199,8 +288,11 @@ Always be helpful, accurate, and efficient."""
         # Add user message
         self.add_message("user", user_message)
 
-        # Build system prompt (dynamically to include active skills)
-        system_prompt = self._build_system_prompt()
+        # Step 1: Dynamic memory recall (Agentic RAG)
+        recalled_context = self._try_recall_memories(user_message)
+
+        # Step 2: Build system prompt with optional recalled context
+        system_prompt = self._build_system_prompt(recalled_context=recalled_context)
 
         # Prepare messages with system prompt
         messages_with_system = [
@@ -216,8 +308,35 @@ Always be helpful, accurate, and efficient."""
             iteration += 1
             self.llm.logger.info(f"LLM iteration {iteration}/{max_iterations}")
 
-            # Call LLM
-            response = self.llm.chat(messages=messages_with_system, tools=tools)
+            # Compress if the full message list (including system prompt) is too large.
+            # Check happens every iteration so tool results that bloat context are caught.
+            if self.context_manager.needs_compression(messages_with_system):
+                self.llm.logger.info("Context compression triggered inside loop")
+                self.messages = self.context_manager.compress_messages(self.messages)
+                system_prompt = self._build_system_prompt()
+                messages_with_system = [
+                    {"role": "system", "content": system_prompt}
+                ] + self.messages
+                self.llm.logger.info(f"Context compressed to {len(self.messages)} messages")
+
+            # Reset step display before each LLM call
+            if self.step_callback:
+                self.step_callback(None, {})
+
+            # Call LLM — catch context-overflow errors and force-compress once before giving up
+            try:
+                response = self.llm.chat(messages=messages_with_system, tools=tools)
+            except Exception as e:
+                if is_context_too_long_error(e):
+                    self.llm.logger.warning(f"Context overflow from API, forcing compression: {e}")
+                    self.messages = self.context_manager.compress_messages(self.messages)
+                    system_prompt = self._build_system_prompt()
+                    messages_with_system = [
+                        {"role": "system", "content": system_prompt}
+                    ] + self.messages
+                    response = self.llm.chat(messages=messages_with_system, tools=tools)
+                else:
+                    raise
 
             # Process response
             assistant_message = response.choices[0].message
@@ -225,6 +344,12 @@ Always be helpful, accurate, and efficient."""
             # Check if tool calls are needed
             if assistant_message.tool_calls:
                 self.llm.logger.info(f"Processing {len(assistant_message.tool_calls)} tool call(s) in iteration {iteration}")
+
+                # Show LLM reasoning text (content before tool calls) if present
+                reasoning = (assistant_message.content or "").strip()
+                if reasoning and self.thinking_callback:
+                    self.thinking_callback(reasoning)
+
                 # Add assistant message with tool calls
                 self.messages.append({
                     "role": "assistant",
@@ -250,6 +375,10 @@ Always be helpful, accurate, and efficient."""
                     # Execute tool
                     try:
                         tool = self.tools.get(function_name)
+
+                        # Notify step callback (for live thinking display)
+                        if self.step_callback:
+                            self.step_callback(function_name, function_args)
 
                         # Check if tool requires confirmation
                         if tool.requires_confirmation and self.confirmation_callback:
@@ -307,15 +436,24 @@ Always be helpful, accurate, and efficient."""
         Returns:
             Conversation summary
         """
-        if not self.messages:
-            return "No conversation history"
+        stats = self.context_manager.get_usage_stats(self.messages)
+        memory_count = len(self.memory_tool.get_all_memories())
 
-        summary = f"Total messages: {len(self.messages)}\n"
-        summary += f"Current model: {self.llm.model}\n"
+        if not self.messages:
+            summary = "No conversation history\n"
+        else:
+            summary = f"Messages: {len(self.messages)}\n"
+
+        summary += f"Model: {self.llm.model}\n"
         summary += f"Active skills: {len(self.skill_manager.get_active_skills())}\n"
+        summary += f"Saved memories: {memory_count}\n"
+        summary += (
+            f"Context: ~{stats['estimated_tokens']:,} / {stats['max_tokens']:,} tokens "
+            f"({stats['usage_percent']:.1f}%)"
+        )
 
         if self.skill_manager.get_active_skills():
-            summary += "Active: " + ", ".join(self.skill_manager.get_active_skills().keys())
+            summary += "\nActive: " + ", ".join(self.skill_manager.get_active_skills().keys())
 
         return summary
 

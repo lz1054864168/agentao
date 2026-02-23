@@ -5,7 +5,14 @@ from .file_ops import EditTool, ReadFileTool, ReadFolderTool, WriteFileTool
 from .search import FindFilesTool, SearchTextTool
 from .shell import ShellTool
 from .web import GoogleSearchTool, WebFetchTool
-from .memory import SaveMemoryTool
+from .memory import (
+    SaveMemoryTool,
+    SearchMemoryTool,
+    DeleteMemoryTool,
+    ClearMemoryTool,
+    FilterMemoryByTagTool,
+    ListMemoryTool,
+)
 from .agents import CLIHelpAgentTool, CodebaseInvestigatorTool
 from .skill import ActivateSkillTool
 
@@ -22,6 +29,11 @@ __all__ = [
     "GoogleSearchTool",
     "WebFetchTool",
     "SaveMemoryTool",
+    "SearchMemoryTool",
+    "DeleteMemoryTool",
+    "ClearMemoryTool",
+    "FilterMemoryByTagTool",
+    "ListMemoryTool",
     "CLIHelpAgentTool",
     "CodebaseInvestigatorTool",
     "ActivateSkillTool",
