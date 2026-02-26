@@ -16,6 +16,7 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 - **Tool confirmation** - user confirmation required for Shell, Web, and destructive Memory tools
 - **Current date context** - system prompt includes current date and time
 - **Multi-line paste support** - paste multi-line text and it's sent as one complete message
+- **Reliability principles** - system prompt enforces read-before-assert, discrepancy reporting, and fact/inference distinction on every turn
 
 ### 🛠️ Comprehensive Tools
 
@@ -69,7 +70,7 @@ The spinner updates in real time to show what the agent is doing:
 
 - **"Thinking..."** - waiting for LLM response
 - **"⚙ tool_name (arg)"** - executing a specific tool
-- **Reasoning text** - LLM's step-by-step reasoning is printed (in blue) before tool calls when the LLM chooses to share it
+- **Structured reasoning** - before each set of tool calls the agent prints (in blue) its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
 
 ### 🎯 Dynamic Skills System
 
@@ -278,6 +279,8 @@ ChatAgent automatically loads project-specific instructions from `CHATAGENT.md` 
 
 If the file doesn't exist, the agent works normally with its default instructions.
 
+Project instructions are injected at the top of the system prompt, before built-in agent instructions — making them the highest-priority guidance for the LLM. A good `CHATAGENT.md` includes code-style conventions, testing commands, and reliability rules such as requiring the agent to cite file and line number when making factual claims about the codebase.
+
 ---
 
 ## Project Structure
@@ -291,9 +294,10 @@ chatagent/
 ├── CHATAGENT.md             # Project-specific agent instructions
 ├── README.md                # This file
 ├── tests/                   # Test files
-│   ├── test_context_manager.py   # ContextManager tests (22 tests, mock LLM)
-│   ├── test_memory_management.py # Memory tool tests
-│   └── test_*.py            # Other feature tests
+│   ├── test_context_manager.py      # ContextManager tests (22 tests, mock LLM)
+│   ├── test_memory_management.py    # Memory tool tests
+│   ├── test_reliability_prompt.py   # Reliability principles in system prompt (6 tests)
+│   └── test_*.py                    # Other feature tests
 ├── docs/                    # Documentation
 │   ├── features/            # Feature documentation
 │   └── updates/             # Update logs
