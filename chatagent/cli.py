@@ -1,11 +1,14 @@
 """CLI interface for ChatAgent."""
 
 import os
-import select
 import sys
 from typing import Optional
 
 import readchar
+from prompt_toolkit import PromptSession
+from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.formatted_text import ANSI
+from prompt_toolkit.key_binding import KeyBindings
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -47,6 +50,24 @@ def _tool_args_summary(tool_name: str, args: dict) -> str:
     return f"({first_val})"
 
 
+_SLASH_COMMANDS = [
+    '/clear', '/context', '/context limit', '/exit', '/help',
+    '/memory', '/memory clear', '/memory delete', '/memory list',
+    '/memory search', '/memory tag', '/model', '/quit',
+    '/reset-confirm', '/skills', '/status',
+]
+
+
+class _SlashCompleter(Completer):
+    def get_completions(self, document, complete_event):
+        text = document.text_before_cursor
+        if not text.startswith('/'):
+            return
+        for cmd in _SLASH_COMMANDS:
+            if cmd.startswith(text):
+                yield Completion(cmd, start_position=-len(text))
+
+
 class ChatAgentCLI:
     """CLI interface for ChatAgent."""
 
@@ -69,6 +90,24 @@ class ChatAgentCLI:
             max_context_tokens=context_limit,
             step_callback=self.on_tool_step,
             thinking_callback=self.on_llm_thinking,
+        )
+
+        # prompt_toolkit session: multiline=True captures full paste; Enter submits
+        _kb = KeyBindings()
+
+        @_kb.add('enter')
+        def _pt_submit(event):
+            event.current_buffer.validate_and_handle()
+
+        @_kb.add('escape', 'enter')  # Meta/Alt+Enter → insert newline
+        def _pt_newline(event):
+            event.current_buffer.insert_text('\n')
+
+        self._prompt_session = PromptSession(
+            key_bindings=_kb,
+            multiline=True,
+            prompt_continuation='',
+            completer=_SlashCompleter(),
         )
 
     def confirm_tool_execution(self, tool_name: str, tool_description: str, tool_args: dict) -> bool:
@@ -567,29 +606,13 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
             console.print("\n[error]Usage: /context  OR  /context limit <n>[/error]\n")
 
     def _get_user_input(self) -> str:
-        """Read user input, collecting all lines when multi-line text is pasted.
+        """Read user input using prompt_toolkit.
 
-        When text is pasted from clipboard, the terminal writes all characters
-        (including newlines) into stdin at once. After Prompt.ask() returns the
-        first line, select.select() detects remaining buffered data and collects
-        the rest, returning the full multi-line string.
+        multiline=True captures pasted multi-line text in one shot.
+        Enter submits; Meta/Alt+Enter inserts a literal newline.
+        prompt_toolkit's wcwidth support correctly handles CJK characters on macOS.
         """
-        first_line = Prompt.ask("\n[bold cyan]You[/bold cyan]")
-
-        # Check if more data is buffered in stdin (multi-line paste scenario)
-        extra_lines = []
-        try:
-            while select.select([sys.stdin], [], [], 0.05)[0]:
-                line = sys.stdin.readline()
-                if not line:
-                    break
-                extra_lines.append(line.rstrip("\n"))
-        except Exception:
-            pass  # select not available or stdin is not a real fd (e.g. in tests)
-
-        if extra_lines:
-            return first_line + "\n" + "\n".join(extra_lines)
-        return first_line
+        return self._prompt_session.prompt(ANSI("\n\033[1;36mYou\033[0m: "))
 
     def run(self):
         """Run the CLI."""

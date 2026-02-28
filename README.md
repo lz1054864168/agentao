@@ -15,7 +15,8 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 - **Auto-loading of project instructions** from `CHATAGENT.md` at startup
 - **Tool confirmation** - user confirmation required for Shell, Web, and destructive Memory tools
 - **Current date context** - system prompt includes current date and time
-- **Multi-line paste support** - paste multi-line text and it's sent as one complete message
+- **Multi-line paste support** - paste multi-line text and the entire content enters the input buffer as one unit (prompt_toolkit native; no timing hacks); press Alt+Enter to insert a manual newline, Enter to submit
+- **Slash command Tab completion** - type `/` and press Tab for an autocomplete menu of all `/` commands
 - **Reliability principles** - system prompt enforces read-before-assert, discrepancy reporting, and fact/inference distinction on every turn
 
 ### 🛠️ Comprehensive Tools
@@ -172,7 +173,7 @@ uv run python main.py
 
 ### Commands
 
-All commands start with `/`:
+All commands start with `/`. Type `/` and press **Tab** for autocomplete.
 
 | Command | Description |
 |---------|-------------|
@@ -433,4 +434,5 @@ This project is open source. Feel free to use and modify as needed.
 
 - Built with [OpenAI Python SDK](https://github.com/openai/openai-python)
 - CLI interface powered by [Rich](https://github.com/Textualize/rich)
+- Input handling powered by [prompt_toolkit](https://github.com/prompt-toolkit/python-prompt-toolkit)
 - Inspired by [Claude Code](https://github.com/anthropics/claude-code)
