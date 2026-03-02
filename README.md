@@ -134,25 +134,32 @@ OPENAI_API_KEY=your-api-key-here
 
 ### Using with Different Providers
 
-**OpenAI:**
+ChatAgent supports switching between providers at runtime with `/provider`. Add credentials for each provider to your `.env` (or `~/.env`) using the naming convention `<NAME>_API_KEY`, `<NAME>_BASE_URL`, and `<NAME>_MODEL`:
+
 ```env
+# OpenAI (default)
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4-turbo-preview
+
+# Gemini
+GEMINI_API_KEY=...
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+GEMINI_MODEL=gemini-2.0-flash
+
+# DeepSeek
+DEEPSEEK_API_KEY=...
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+DEEPSEEK_MODEL=deepseek-chat
 ```
 
-**Anthropic (via compatible endpoint):**
-```env
-OPENAI_API_KEY=your-key
-OPENAI_BASE_URL=https://...
-OPENAI_MODEL=claude-sonnet-4-5
+Then switch at runtime:
+```
+/provider           # list detected providers
+/provider GEMINI    # switch to Gemini
+/model              # see available models on the new endpoint
 ```
 
-**DeepSeek / other OpenAI-compatible APIs:**
-```env
-OPENAI_API_KEY=your-api-key
-OPENAI_BASE_URL=https://api.your-provider.com/v1
-OPENAI_MODEL=your-model-name
-```
+The `/provider` command detects any `*_API_KEY` entry already loaded into the environment, so it works with `~/.env` and system environment variables — not just a local `.env` file.
 
 ---
 
@@ -182,6 +189,8 @@ All commands start with `/`. Type `/` and press **Tab** for autocomplete.
 | `/status` | Show message count, model, active skills, memory count, context usage |
 | `/model` | Fetch and list available models from the configured API endpoint |
 | `/model <name>` | Switch to specified model (e.g., `/model gpt-4`) |
+| `/provider` | List available providers (detected from `*_API_KEY` env vars) |
+| `/provider <NAME>` | Switch to a different provider (e.g., `/provider GEMINI`) |
 | `/skills` | List available and active skills |
 | `/memory` | List all saved memories with tag summary |
 | `/memory search <query>` | Search memories (searches keys, tags, and values) |
@@ -415,6 +424,8 @@ Documentation here...
 ## Troubleshooting
 
 **Model List Not Loading:** `/model` queries the live API endpoint. If it fails (invalid key, unreachable endpoint, no `models` endpoint), a clear error is shown. Verify your `OPENAI_API_KEY` and `OPENAI_BASE_URL` settings.
+
+**Provider List Empty:** `/provider` scans the environment for `*_API_KEY` entries. Make sure your credentials are in `~/.env` or exported into the shell — a local `.env` in the project directory is not required.
 
 **API Key Issues:** Verify `.env` exists and contains a valid key with correct permissions.
 

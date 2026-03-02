@@ -53,7 +53,7 @@ def _tool_args_summary(tool_name: str, args: dict) -> str:
 _SLASH_COMMANDS = [
     '/clear', '/context', '/context limit', '/exit', '/help',
     '/memory', '/memory clear', '/memory delete', '/memory list',
-    '/memory search', '/memory tag', '/model', '/quit',
+    '/memory search', '/memory tag', '/model', '/provider', '/quit',
     '/reset-confirm', '/skills', '/status',
 ]
 
@@ -78,6 +78,7 @@ class ChatAgentCLI:
         # Track session-wide confirmation preferences
         self.allow_all_tools = False  # "Yes to all" mode
         self.current_status = None  # Track active status context
+        self.current_provider = "OPENAI"  # Track active provider name
 
         context_limit = int(os.getenv("CHATAGENT_CONTEXT_TOKENS", "200000"))
 
@@ -311,6 +312,7 @@ A CLI chat agent with tools and skills support.
 **Commands:**
 - `/help` - Show help message
 - `/model` - List or switch models
+- `/provider` - List or switch providers
 - `/clear` - Clear conversation and reset confirmation
 - `/status` - Show conversation status (memory count, context usage)
 - `/skills` - List available skills
@@ -344,6 +346,9 @@ All commands start with `/`:
 - `/model` - List available models or switch model
   - `/model` - Show current model and available models
   - `/model <name>` - Switch to specified model
+- `/provider` - List or switch API providers
+  - `/provider` - Show current provider and available providers
+  - `/provider <NAME>` - Switch to provider (reads XXXX_API_KEY, XXXX_BASE_URL, XXXX_MODEL from env)
 - `/clear` - Clear conversation history and reset confirmation mode
   - Also resets "allow all" mode to prompt for each tool
 - `/status` - Show conversation status
@@ -519,6 +524,58 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
             console.print(f"\n[error]Unknown subcommand: {subcommand}[/error]")
             console.print("[info]Available subcommands: list, search, tag, delete, clear[/info]\n")
 
+    def _list_providers_from_env(self) -> list:
+        """Return sorted list of provider names that have an API key in environment."""
+        providers = []
+        for key, value in os.environ.items():
+            if key.endswith("_API_KEY") and value:
+                provider = key[: -len("_API_KEY")]
+                providers.append(provider)
+        return sorted(providers)
+
+    def handle_provider_command(self, args: str):
+        """Handle /provider command.
+
+        Args:
+            args: Provider name to switch to, or empty to list providers
+        """
+        args = args.strip().upper()
+
+        if not args:
+            # Show current provider and list all available
+            current_model = self.agent.get_current_model()
+            console.print(f"\n[info]Current Provider:[/info] [cyan]{self.current_provider}[/cyan]  "
+                          f"[dim](model: {current_model})[/dim]\n")
+
+            providers = self._list_providers_from_env()
+            if not providers:
+                console.print("[warning]No providers found in .env (looking for XXXX_API_KEY entries)[/warning]\n")
+                return
+
+            console.print("[info]Available Providers:[/info]")
+            for p in providers:
+                marker = " [green]✓[/green]" if p == self.current_provider else ""
+                console.print(f"  • {p}{marker}")
+            console.print("\n[info]Usage:[/info] /provider <NAME>  (e.g. /provider GEMINI)\n")
+
+        else:
+            # Switch to specified provider
+            api_key = os.getenv(f"{args}_API_KEY")
+            if not api_key:
+                console.print(f"\n[error]No API key found for provider '{args}' "
+                               f"(expected env var: {args}_API_KEY)[/error]\n")
+                return
+
+            base_url = os.getenv(f"{args}_BASE_URL") or None
+            model = os.getenv(f"{args}_MODEL") or None
+
+            self.agent.set_provider(api_key=api_key, base_url=base_url, model=model)
+            self.current_provider = args
+
+            current_model = self.agent.get_current_model()
+            console.print(f"\n[success]Switched to provider: {args}[/success]")
+            console.print(f"[info]Model:[/info] [cyan]{current_model}[/cyan]\n")
+
     def handle_model_command(self, args: str):
         """Handle model command.
 
@@ -672,6 +729,10 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
 
                     elif command == "model":
                         self.handle_model_command(args)
+                        continue
+
+                    elif command == "provider":
+                        self.handle_provider_command(args)
                         continue
 
                     elif command == "context":
