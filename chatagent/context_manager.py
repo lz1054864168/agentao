@@ -1,6 +1,5 @@
 """Context window management: compression, summarization, and memory recall."""
 
-import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -176,145 +175,6 @@ class ContextManager:
                 lines.append(f"[{role.upper()}]: {str(content)[:500]}")
         return "\n".join(lines)
 
-    def recall_relevant_memories(
-        self,
-        user_message: str,
-        all_memories: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Use LLM to identify memories relevant to the current user message.
-
-        This is "Agentic RAG": the LLM itself decides relevance, no vector DB needed.
-
-        Args:
-            user_message: The current user message
-            all_memories: All saved memories
-
-        Returns:
-            List of relevant memory dicts, or [] on failure/no match
-        """
-        if not all_memories:
-            return []
-
-        try:
-            memory_lines = "\n".join(
-                f"{i+1}. [{m['key']}]: {m['value']}"
-                + (f" (tags: {', '.join(m['tags'])})" if m.get("tags") else "")
-                for i, m in enumerate(all_memories)
-            )
-
-            recall_messages = [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a memory relevance analyzer. Given a user message and a list "
-                        "of saved memories, identify which memories are relevant to the current query. "
-                        "Return ONLY a JSON array of memory keys that are relevant. "
-                        'If none are relevant, return []. Example: ["key1", "key2"]'
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f"User message: {user_message}\n\n"
-                        f"Saved memories:\n{memory_lines}\n\n"
-                        "Which memory keys are relevant? Return JSON array only."
-                    ),
-                },
-            ]
-
-            response = self.llm_client.chat(messages=recall_messages, tools=None)
-            content = response.choices[0].message.content or "[]"
-
-            # Extract JSON array from response (handle extra text around it)
-            content = content.strip()
-            start = content.find("[")
-            end = content.rfind("]")
-            if start != -1 and end != -1:
-                content = content[start:end + 1]
-
-            relevant_keys = json.loads(content)
-            if not isinstance(relevant_keys, list):
-                return []
-
-            return [m for m in all_memories if m.get("key") in relevant_keys]
-
-        except Exception as e:
-            try:
-                self.llm_client.logger.warning(f"Memory recall failed: {e}")
-            except Exception:
-                pass
-            return []
-
-    def extract_memories_to_save(
-        self,
-        user_message: str,
-        assistant_response: str,
-        existing_memories: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-        """Use LLM to extract important long-term memories from a conversation turn.
-
-        Conservative strategy: only extract clearly valuable information.
-
-        Returns:
-            List of {key, value, tags} dicts to save, or [] if nothing worth saving.
-        """
-        existing_summary = "\n".join(
-            f"- [{m['key']}]: {m['value'][:80]}"
-            for m in existing_memories[:30]
-        ) if existing_memories else "(none)"
-
-        extract_messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a memory extractor. Analyze this conversation turn and extract "
-                    "ONLY clearly important information worth remembering for FUTURE conversations.\n\n"
-                    "Save: user preferences, personal info, project facts, key decisions, work context.\n"
-                    "Do NOT save: temporary info, vague observations, or anything already in existing memories.\n\n"
-                    "Return a JSON array: [{\"key\": \"...\", \"value\": \"...\", \"tags\": [\"...\"]}]\n"
-                    "Return [] if nothing important. Keys should be short snake_case identifiers."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"User message: {user_message}\n\n"
-                    f"Assistant response: {assistant_response[:1000]}\n\n"
-                    f"Existing memories (do not duplicate):\n{existing_summary}\n\n"
-                    "Extract memories to save. Return JSON array only."
-                ),
-            },
-        ]
-
-        try:
-            response = self.llm_client.chat(messages=extract_messages, tools=None)
-            content = (response.choices[0].message.content or "[]").strip()
-
-            # Extract JSON array (handle surrounding text)
-            start = content.find("[")
-            end = content.rfind("]")
-            if start == -1 or end == -1:
-                return []
-            content = content[start:end + 1]
-
-            result = json.loads(content)
-            if not isinstance(result, list):
-                return []
-
-            # Validate structure
-            valid = []
-            for item in result:
-                if isinstance(item, dict) and "key" in item and "value" in item:
-                    valid.append(item)
-            return valid
-
-        except Exception as e:
-            try:
-                self.llm_client.logger.warning(f"Memory extraction failed: {e}")
-            except Exception:
-                pass
-            return []
-
     def get_usage_stats(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Return context window usage statistics.
 
@@ -343,4 +203,6 @@ def is_context_too_long_error(exc: Exception) -> bool:
         "maximum context length",
         "tokens > ",
         "reduce the length",
+        "range of input length",                   # DeepSeek / Qwen style
+        "internalerror.algo.invalidparameter",     # DeepSeek internal error class
     ])

@@ -67,7 +67,6 @@ class ChatAgent:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         confirmation_callback: Optional[Callable[[str, str, Dict[str, Any]], bool]] = None,
-        recall_callback: Optional[Callable[[List[Dict[str, Any]]], Optional[List[Dict[str, Any]]]]] = None,
         max_context_tokens: int = 200_000,
         step_callback: Optional[Callable[[Optional[str], Dict[str, Any]], None]] = None,
         thinking_callback: Optional[Callable[[str], None]] = None,
@@ -81,8 +80,6 @@ class ChatAgent:
             model: Model name to use
             confirmation_callback: Optional callback for tool confirmation.
                                    Takes (tool_name, tool_description, tool_args) and returns bool
-            recall_callback: Optional callback for memory recall confirmation.
-                             Takes (recalled_memories) and returns confirmed list or None to skip
             max_context_tokens: Maximum context window tokens (default 200K)
             step_callback: Optional callback called before/after each tool execution.
                            Takes (tool_name, tool_args); tool_name=None means reset to Thinking...
@@ -95,7 +92,6 @@ class ChatAgent:
         self.skill_manager = SkillManager()
         self.memory_tool = SaveMemoryTool()
         self.confirmation_callback = confirmation_callback
-        self.recall_callback = recall_callback
         self.step_callback = step_callback
         self.thinking_callback = thinking_callback
         self.ask_user_callback = ask_user_callback
@@ -147,6 +143,7 @@ class ChatAgent:
             ShellTool(),
             WebFetchTool(),
             GoogleSearchTool(),
+            self.memory_tool,
             CLIHelpAgentTool(),
             CodebaseInvestigatorTool(),
             ActivateSkillTool(self.skill_manager),
@@ -170,11 +167,8 @@ class ChatAgent:
             "Use 'the file shows...' for facts, 'I expect...' for inferences."
         )
 
-    def _build_system_prompt(self, recalled_context: Optional[str] = None) -> str:
+    def _build_system_prompt(self) -> str:
         """Build system prompt for the agent.
-
-        Args:
-            recalled_context: Optional recalled memory context to inject
 
         Returns:
             System prompt string
@@ -236,10 +230,20 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                 "Be specific and falsifiable. This reasoning is shown to the user."
             )
 
-        # Inject recalled memories if provided
-        if recalled_context:
-            prompt += "\n\n=== Relevant Memories (recalled for this message) ===\n"
-            prompt += recalled_context
+        # Inject all saved memories
+        memories = self.memory_tool.get_all_memories()
+        if memories:
+            prompt += "\n\n=== Memories ===\n"
+            prompt += "Important information remembered from past conversations:\n\n"
+            for m in memories:
+                line = f"• {m['key']}: {m['value']}"
+                if m.get('tags'):
+                    line += f" [tags: {', '.join(m['tags'])}]"
+                prompt += line + "\n"
+            prompt += "\nWhen you learn new durable facts, call save_memory to preserve them."
+        else:
+            prompt += "\n\n=== Memories ===\n"
+            prompt += "No memories saved yet. Call save_memory when you learn durable facts about the user or project."
 
         return prompt
 
@@ -251,73 +255,6 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
             content: Message content
         """
         self.messages.append({"role": role, "content": content})
-
-    def _try_recall_memories(self, user_message: str) -> Optional[str]:
-        """Attempt to recall relevant memories for the current user message (Agentic RAG).
-
-        Args:
-            user_message: The user's current message
-
-        Returns:
-            Formatted string of relevant memories for injection, or None if none recalled
-        """
-        try:
-            all_memories = self.memory_tool.get_all_memories()
-            if not all_memories:
-                return None
-
-            relevant = self.context_manager.recall_relevant_memories(
-                user_message, all_memories
-            )
-
-            if not relevant:
-                return None
-
-            # If recall_callback is set, ask user to confirm injection
-            if self.recall_callback:
-                confirmed = self.recall_callback(relevant)
-                if confirmed is None:
-                    return None
-                relevant = confirmed
-
-            if not relevant:
-                return None
-
-            lines = ["[Recalled Memories]"]
-            for mem in relevant:
-                lines.append(f"• {mem['key']}: {mem['value']}")
-            return "\n".join(lines)
-
-        except Exception as e:
-            self.llm.logger.warning(f"Memory recall failed: {e}")
-            return None
-
-    def _try_save_memories(self, user_message: str, assistant_response: str) -> None:
-        """Analyze the conversation turn and auto-save important memories.
-
-        Called after each complete chat() turn. Uses LLM to extract
-        valuable long-term information. Saves silently; logs to chatagent.log.
-        """
-        # Skip trivial responses
-        if not assistant_response or len(assistant_response.strip()) < 20:
-            return
-
-        try:
-            all_memories = self.memory_tool.get_all_memories()
-            memories_to_save = self.context_manager.extract_memories_to_save(
-                user_message, assistant_response, all_memories
-            )
-
-            for mem in memories_to_save:
-                self.memory_tool.execute(
-                    key=mem["key"],
-                    value=mem["value"],
-                    tags=mem.get("tags", ["auto"]),
-                )
-                self.llm.logger.info(f"[Auto-Memory] Saved: {mem['key']} = {mem['value'][:80]}")
-
-        except Exception as e:
-            self.llm.logger.warning(f"Auto-memory save failed: {e}")
 
     def clear_history(self):
         """Clear conversation history and deactivate all skills."""
@@ -337,11 +274,8 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
         # Add user message
         self.add_message("user", user_message)
 
-        # Step 1: Dynamic memory recall (Agentic RAG)
-        recalled_context = self._try_recall_memories(user_message)
-
-        # Step 2: Build system prompt with optional recalled context
-        system_prompt = self._build_system_prompt(recalled_context=recalled_context)
+        # Build system prompt (injects all memories)
+        system_prompt = self._build_system_prompt()
 
         # Prepare messages with system prompt
         messages_with_system = [
@@ -511,7 +445,6 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                         stored += "..."
                     final_msg["reasoning_content"] = stored
                 self.messages.append(final_msg)
-                self._try_save_memories(user_message, assistant_content)
                 return assistant_content
 
         # If we hit max iterations, return what we have
@@ -525,7 +458,6 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                 stored += "..."
             final_msg["reasoning_content"] = stored
         self.messages.append(final_msg)
-        self._try_save_memories(user_message, assistant_content)
         return assistant_content
 
     def get_conversation_summary(self) -> str:

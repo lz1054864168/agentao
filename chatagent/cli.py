@@ -87,7 +87,6 @@ class ChatAgentCLI:
             base_url=os.getenv("OPENAI_BASE_URL"),
             model=os.getenv("OPENAI_MODEL"),
             confirmation_callback=self.confirm_tool_execution,
-            recall_callback=self.confirm_memory_recall,
             max_context_tokens=context_limit,
             step_callback=self.on_tool_step,
             thinking_callback=self.on_llm_thinking,
@@ -192,63 +191,6 @@ class ChatAgentCLI:
 
         finally:
             # Resume the "Thinking..." spinner after user makes a choice
-            if self.current_status:
-                self.current_status.start()
-
-    def confirm_memory_recall(self, recalled_memories: list) -> Optional[list]:
-        """Prompt user to confirm injecting recalled memories into context.
-
-        Args:
-            recalled_memories: List of memory dicts recalled as relevant
-
-        Returns:
-            The same list if user confirms, None if user declines
-        """
-        if self.allow_all_tools:
-            console.print(
-                f"[dim]✓ Auto-injecting {len(recalled_memories)} recalled memory(ies)[/dim]"
-            )
-            return recalled_memories
-
-        if self.current_status:
-            self.current_status.stop()
-
-        try:
-            console.print(
-                f"\n[cyan]Memory Recall[/cyan]: "
-                f"Found {len(recalled_memories)} relevant memory(ies):\n"
-            )
-            for mem in recalled_memories:
-                console.print(f"  • [cyan]{mem['key']}[/cyan]: {str(mem['value'])[:80]}")
-                if mem.get("tags"):
-                    console.print(f"    Tags: {', '.join(mem['tags'])}")
-
-            console.print("\n[bold]Inject these memories into context?[/bold]")
-            console.print(" [green]1[/green]. Yes, inject")
-            console.print(" [red]2[/red]. No, skip")
-            console.print(
-                "\n[dim]Press 1 or 2 (single key, no Enter needed) · Esc to skip[/dim]",
-                end=" ",
-            )
-
-            while True:
-                try:
-                    key = readchar.readkey()
-                    if key == "1":
-                        console.print("\n[green]✓ Memories injected into context[/green]")
-                        return recalled_memories
-                    elif key in ("2",):
-                        console.print("\n[dim]Memory injection skipped[/dim]")
-                        return None
-                    elif key in (readchar.key.ESC, readchar.key.CTRL_C):
-                        console.print("\n[dim]Memory injection skipped[/dim]")
-                        return None
-                    else:
-                        continue
-                except (KeyboardInterrupt, Exception):
-                    console.print("\n[dim]Memory injection skipped[/dim]")
-                    return None
-        finally:
             if self.current_status:
                 self.current_status.start()
 

@@ -202,81 +202,6 @@ def test_compress_messages_too_few_messages():
 
 
 # ---------------------------------------------------------------------------
-# Memory recall (Agentic RAG)
-# ---------------------------------------------------------------------------
-
-def test_recall_empty_memories():
-    from chatagent.context_manager import ContextManager
-    cm = ContextManager(_make_mock_llm("[]"), Mock(), max_tokens=200_000)
-    result = cm.recall_relevant_memories("hello", [])
-    assert result == []
-
-
-def test_recall_returns_relevant_keys():
-    from chatagent.context_manager import ContextManager
-
-    memories = [
-        {"key": "project_name", "value": "ChatAgent", "tags": []},
-        {"key": "user_pref", "value": "Python 3.12", "tags": []},
-    ]
-    mock_llm = _make_mock_llm('["project_name"]')
-    cm = ContextManager(mock_llm, Mock(), max_tokens=200_000)
-
-    result = cm.recall_relevant_memories("What is the project?", memories)
-
-    assert len(result) == 1
-    assert result[0]["key"] == "project_name"
-
-
-def test_recall_returns_empty_when_no_match():
-    from chatagent.context_manager import ContextManager
-
-    memories = [{"key": "k1", "value": "v1", "tags": []}]
-    mock_llm = _make_mock_llm("[]")
-    cm = ContextManager(mock_llm, Mock(), max_tokens=200_000)
-
-    result = cm.recall_relevant_memories("unrelated question", memories)
-    assert result == []
-
-
-def test_recall_graceful_on_invalid_json():
-    from chatagent.context_manager import ContextManager
-
-    memories = [{"key": "k1", "value": "v1", "tags": []}]
-    mock_llm = _make_mock_llm("not valid json at all")
-    cm = ContextManager(mock_llm, Mock(), max_tokens=200_000)
-
-    result = cm.recall_relevant_memories("hello", memories)
-    assert result == []
-
-
-def test_recall_graceful_on_llm_error():
-    from chatagent.context_manager import ContextManager
-
-    mock_llm = Mock()
-    mock_llm.logger = Mock()
-    mock_llm.chat.side_effect = Exception("network error")
-
-    memories = [{"key": "k1", "value": "v1", "tags": []}]
-    cm = ContextManager(mock_llm, Mock(), max_tokens=200_000)
-
-    result = cm.recall_relevant_memories("hello", memories)
-    assert result == []
-
-
-def test_recall_handles_json_with_surrounding_text():
-    """LLM sometimes wraps JSON in extra text."""
-    from chatagent.context_manager import ContextManager
-
-    memories = [{"key": "key1", "value": "value1", "tags": []}]
-    mock_llm = _make_mock_llm('Here are the relevant keys: ["key1"] based on the query.')
-    cm = ContextManager(mock_llm, Mock(), max_tokens=200_000)
-
-    result = cm.recall_relevant_memories("query", memories)
-    assert len(result) == 1
-    assert result[0]["key"] == "key1"
-
-
 # ---------------------------------------------------------------------------
 # Usage stats
 # ---------------------------------------------------------------------------
@@ -318,8 +243,8 @@ def test_get_usage_stats_empty_messages():
 # Integration test
 # ---------------------------------------------------------------------------
 
-def test_full_flow_compress_then_recall():
-    """Integration test: compress messages, then recall memories from memory tool."""
+def test_full_flow_compress_saves_to_memory():
+    """Integration test: compress messages saves summary to memory tool."""
     from chatagent.context_manager import ContextManager
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
@@ -327,17 +252,9 @@ def test_full_flow_compress_then_recall():
         tmp = f.name
 
     try:
-        call_count = [0]
-
         def mock_chat(**kwargs):
-            call_count[0] += 1
             mock_choice = Mock()
-            # First call: summarize
-            if call_count[0] == 1:
-                mock_choice.message.content = "Early conversation summary."
-            else:
-                # Second call: recall
-                mock_choice.message.content = '["important_fact"]'
+            mock_choice.message.content = "Early conversation summary."
             mock_choice.message.tool_calls = None
             mock_resp = Mock()
             mock_resp.choices = [mock_choice]
@@ -348,19 +265,15 @@ def test_full_flow_compress_then_recall():
         mock_llm.chat = mock_chat
 
         memory_tool = _make_memory_tool(tmp)
-        memory_tool.execute(key="important_fact", value="Always test before commit", tags=["reminder"])
-
         cm = ContextManager(mock_llm, memory_tool, max_tokens=200_000)
 
-        # Step 1: Compress
         original = _make_messages(20)
         compressed = cm.compress_messages(original)
         assert len(compressed) < len(original)
 
-        # Step 2: Recall
-        all_mems = memory_tool.get_all_memories()
-        recalled = cm.recall_relevant_memories("What should I remember before committing?", all_mems)
-        assert any(m["key"] == "important_fact" for m in recalled)
+        # Compression should have saved a summary memory
+        saved = memory_tool.get_all_memories()
+        assert any("conversation_summary" in m["key"] for m in saved)
 
     finally:
         Path(tmp).unlink(missing_ok=True)
@@ -390,15 +303,6 @@ if __name__ == "__main__":
     test_compress_messages_too_few_messages()
     print("✓ Compression algorithm tests passed")
 
-    # Memory recall
-    test_recall_empty_memories()
-    test_recall_returns_relevant_keys()
-    test_recall_returns_empty_when_no_match()
-    test_recall_graceful_on_invalid_json()
-    test_recall_graceful_on_llm_error()
-    test_recall_handles_json_with_surrounding_text()
-    print("✓ Memory recall tests passed")
-
     # Usage stats
     test_get_usage_stats_structure()
     test_get_usage_stats_correct_percent()
@@ -406,7 +310,7 @@ if __name__ == "__main__":
     print("✓ Usage stats tests passed")
 
     # Integration
-    test_full_flow_compress_then_recall()
+    test_full_flow_compress_saves_to_memory()
     print("✓ Integration test passed")
 
     print("\n✅ All ContextManager tests passed!")

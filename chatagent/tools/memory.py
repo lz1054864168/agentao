@@ -11,7 +11,7 @@ from .base import Tool
 class SaveMemoryTool(Tool):
     """Tool for saving important information to memory."""
 
-    def __init__(self, memory_file: str = ".chatagent_memory.json"):
+    def __init__(self, memory_file: str = ".chatagent/memory.json"):
         """Initialize memory tool.
 
         Args:
@@ -21,7 +21,8 @@ class SaveMemoryTool(Tool):
         self._ensure_memory_file()
 
     def _ensure_memory_file(self):
-        """Ensure memory file exists."""
+        """Ensure memory file and its parent directory exist."""
+        self.memory_file.parent.mkdir(parents=True, exist_ok=True)
         if not self.memory_file.exists():
             self.memory_file.write_text(json.dumps({"memories": []}, indent=2))
 
@@ -31,7 +32,13 @@ class SaveMemoryTool(Tool):
 
     @property
     def description(self) -> str:
-        return "Save important information to memory for future reference. Use this to remember user preferences, project context, or important facts."
+        return (
+            "Save important information to long-term memory for future conversations. "
+            "Call this proactively when you learn durable facts about the user or project: "
+            "preferences, names, key decisions, recurring workflows. "
+            "Do NOT save ephemeral or session-specific details. "
+            "Use descriptive snake_case keys like 'user_preferred_language'."
+        )
 
     @property
     def parameters(self) -> Dict[str, Any]:
