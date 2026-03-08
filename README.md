@@ -18,6 +18,7 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 - **Multi-line paste support** - paste multi-line text and the entire content enters the input buffer as one unit (prompt_toolkit native; no timing hacks); press Alt+Enter to insert a manual newline, Enter to submit
 - **Slash command Tab completion** - type `/` and press Tab for an autocomplete menu of all `/` commands
 - **Reliability principles** - system prompt enforces read-before-assert, discrepancy reporting, and fact/inference distinction on every turn
+- **Operational guidelines** - system prompt includes tone & style rules, shell command efficiency patterns (temp file redirect), tool usage rules (parallelism, non-interactive flags, respect cancellations), and security guidelines (explain-before-act)
 
 ### 🛠️ Comprehensive Tools
 
