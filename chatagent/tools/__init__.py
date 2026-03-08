@@ -15,6 +15,7 @@ from .memory import (
 )
 from .agents import CLIHelpAgentTool, CodebaseInvestigatorTool
 from .skill import ActivateSkillTool
+from .ask_user import AskUserTool
 
 __all__ = [
     "Tool",
@@ -37,4 +38,5 @@ __all__ = [
     "CLIHelpAgentTool",
     "CodebaseInvestigatorTool",
     "ActivateSkillTool",
+    "AskUserTool",
 ]

@@ -91,6 +91,7 @@ class ChatAgentCLI:
             max_context_tokens=context_limit,
             step_callback=self.on_tool_step,
             thinking_callback=self.on_llm_thinking,
+            ask_user_callback=self.ask_user,
         )
 
         # prompt_toolkit session: multiline=True captures full paste; Enter submits
@@ -299,6 +300,27 @@ class ChatAgentCLI:
 
         self.current_status.update(label)
 
+    def ask_user(self, question: str) -> str:
+        """Pause spinner, display question, read free-form user response, resume spinner.
+
+        Args:
+            question: The question from the LLM to show the user
+
+        Returns:
+            User's text response, or fallback string on interrupt/EOF
+        """
+        if self.current_status:
+            self.current_status.stop()
+        try:
+            console.print(f"\n[bold cyan]? {question}[/bold cyan]")
+            response = input("> ").strip()
+            return response if response else "(no response)"
+        except (EOFError, KeyboardInterrupt):
+            return "(user interrupted)"
+        finally:
+            if self.current_status:
+                self.current_status.start()
+
     def print_welcome(self):
         """Print welcome message."""
         current_model = self.agent.get_current_model()
@@ -351,6 +373,7 @@ All commands start with `/`:
   - `/provider <NAME>` - Switch to provider (reads XXXX_API_KEY, XXXX_BASE_URL, XXXX_MODEL from env)
 - `/clear` - Clear conversation history and reset confirmation mode
   - Also resets "allow all" mode to prompt for each tool
+  - `/clear all` - Also clear all saved memories
 - `/status` - Show conversation status
 - `/skills` - List available skills
 - `/memory [subcommand] [arg]` - Manage saved memories
@@ -704,8 +727,14 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
                     elif command == "clear":
                         self.agent.clear_history()
                         self.allow_all_tools = False  # Reset confirmation mode
-                        console.print("\n[success]Conversation history cleared.[/success]")
-                        console.print("[info]Tool confirmation reset to prompt mode.[/info]\n")
+                        if args == "all":
+                            mem_count = self.agent.memory_tool.clear_all_memories()
+                            console.print("\n[success]Conversation history cleared.[/success]")
+                            console.print(f"[success]Cleared {mem_count} memory(ies).[/success]")
+                            console.print("[info]Tool confirmation reset to prompt mode.[/info]\n")
+                        else:
+                            console.print("\n[success]Conversation history cleared.[/success]")
+                            console.print("[info]Tool confirmation reset to prompt mode.[/info]\n")
                         continue
 
                     elif command == "status":

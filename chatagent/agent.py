@@ -21,6 +21,7 @@ from .tools import (
     CLIHelpAgentTool,
     CodebaseInvestigatorTool,
     ActivateSkillTool,
+    AskUserTool,
 )
 from .skills import SkillManager
 from .context_manager import ContextManager, is_context_too_long_error
@@ -28,6 +29,33 @@ from .context_manager import ContextManager, is_context_too_long_error
 
 MAX_TOOL_RESULT_CHARS = 80_000  # ~20K tokens per tool result
 MAX_REASONING_HISTORY_CHARS = 500  # Truncate reasoning_content in history to ~125 tokens
+
+
+def _serialize_tool_call(tc) -> dict:
+    """Serialize a tool call object to a dict for conversation history.
+
+    Uses model_dump() to preserve ALL Pydantic extra fields at their correct level.
+    This handles Gemini's thought_signature (and similar fields) regardless of
+    which level they appear at in the response (tc vs tc.function).
+    Falls back to manual construction for non-Pydantic objects.
+    """
+    if hasattr(tc, "model_dump"):
+        return tc.model_dump()
+    # Fallback for non-Pydantic objects
+    entry: Dict[str, Any] = {
+        "id": tc.id,
+        "type": "function",
+        "function": {
+            "name": tc.function.name,
+            "arguments": tc.function.arguments,
+        },
+    }
+    thought_sig = getattr(tc.function, "thought_signature", None)
+    if thought_sig is None:
+        thought_sig = getattr(tc, "thought_signature", None)
+    if thought_sig is not None:
+        entry["function"]["thought_signature"] = thought_sig
+    return entry
 
 
 class ChatAgent:
@@ -43,6 +71,7 @@ class ChatAgent:
         max_context_tokens: int = 200_000,
         step_callback: Optional[Callable[[Optional[str], Dict[str, Any]], None]] = None,
         thinking_callback: Optional[Callable[[str], None]] = None,
+        ask_user_callback: Optional[Callable[[str], str]] = None,
     ):
         """Initialize chat agent.
 
@@ -59,6 +88,8 @@ class ChatAgent:
                            Takes (tool_name, tool_args); tool_name=None means reset to Thinking...
             thinking_callback: Optional callback called when LLM produces reasoning text
                                before tool calls. Takes the reasoning string.
+            ask_user_callback: Optional callback for ask_user tool. Takes (question) and returns
+                               the user's free-form text response.
         """
         self.llm = LLMClient(api_key=api_key, base_url=base_url, model=model)
         self.skill_manager = SkillManager()
@@ -67,6 +98,7 @@ class ChatAgent:
         self.recall_callback = recall_callback
         self.step_callback = step_callback
         self.thinking_callback = thinking_callback
+        self.ask_user_callback = ask_user_callback
 
         # Initialize context manager
         self.context_manager = ContextManager(
@@ -118,6 +150,7 @@ class ChatAgent:
             CLIHelpAgentTool(),
             CodebaseInvestigatorTool(),
             ActivateSkillTool(self.skill_manager),
+            AskUserTool(ask_user_callback=self.ask_user_callback),
         ]
 
         for tool in tools_to_register:
@@ -390,14 +423,7 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                     "role": "assistant",
                     "content": assistant_message.content or "",
                     "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
-                            },
-                        }
+                        _serialize_tool_call(tc)
                         for tc in assistant_message.tool_calls
                     ],
                 }
@@ -536,6 +562,16 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
             Current model name
         """
         return self.llm.model
+
+    def set_provider(self, api_key: str, base_url: Optional[str] = None, model: Optional[str] = None) -> None:
+        """Reinitialize the LLM client with new provider credentials.
+
+        Args:
+            api_key: API key for the new provider
+            base_url: Base URL for the new provider's API endpoint
+            model: Model name to use with the new provider
+        """
+        self.llm.reconfigure(api_key=api_key, base_url=base_url, model=model)
 
     def set_model(self, model: str) -> str:
         """Set the model to use.
