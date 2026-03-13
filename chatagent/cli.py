@@ -51,7 +51,7 @@ def _tool_args_summary(tool_name: str, args: dict) -> str:
 
 
 _SLASH_COMMANDS = [
-    '/clear', '/context', '/context limit', '/exit', '/help',
+    '/agent', '/clear', '/context', '/context limit', '/exit', '/help',
     '/memory', '/memory clear', '/memory delete', '/memory list',
     '/memory search', '/memory tag', '/model', '/provider', '/quit',
     '/reset-confirm', '/skills', '/status',
@@ -135,16 +135,11 @@ class ChatAgentCLI:
             # Display tool information
             console.print(f"\n[yellow]⚠️  Tool Confirmation Required[/yellow]")
             console.print(f"[info]Tool:[/info] [cyan]{tool_name}[/cyan]")
-            console.print(f"[info]Description:[/info] {tool_description}")
             console.print(f"[info]Arguments:[/info]")
 
             # Format arguments nicely
             for key, value in tool_args.items():
-                # Truncate long values
-                value_str = str(value)
-                if len(value_str) > 100:
-                    value_str = value_str[:100] + "..."
-                console.print(f"  • {key}: {value_str}")
+                console.print(f"  • {key}: {value}")
 
             # Display menu with better formatting
             console.print("\n[bold]Choose an option:[/bold]")
@@ -594,6 +589,56 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
             result = self.agent.set_model(args)
             console.print(f"\n[success]{result}[/success]\n")
 
+    def handle_agent_command(self, args: str):
+        """Handle /agent command.
+
+        Args:
+            args: '<name> <task>' to run an agent, or empty to list agents
+        """
+        args = args.strip()
+
+        if not args:
+            # List available agents
+            if not self.agent.agent_manager:
+                console.print("\n[warning]No agent manager available.[/warning]\n")
+                return
+            agents = self.agent.agent_manager.list_agents()
+            if not agents:
+                console.print("\n[warning]No agents defined.[/warning]\n")
+                return
+            console.print(f"\n[info]Available Agents ({len(agents)}):[/info]\n")
+            for name, desc in agents.items():
+                console.print(f"  - [cyan]{name}[/cyan]: {desc}")
+            console.print("\n[info]Usage:[/info] /agent <name> <task>\n")
+            return
+
+        # Parse: first word is agent name, rest is the task
+        parts = args.split(None, 1)
+        agent_name = parts[0]
+        if len(parts) < 2:
+            console.print(f"\n[error]Usage: /agent {agent_name} <task description>[/error]\n")
+            return
+
+        task = parts[1]
+        tool_name = f"agent_{agent_name.replace('-', '_')}"
+
+        try:
+            tool = self.agent.tools.get(tool_name)
+        except KeyError:
+            console.print(f"\n[error]Unknown agent: {agent_name}[/error]")
+            available = ", ".join(self.agent.agent_manager.list_agents().keys()) if self.agent.agent_manager else ""
+            console.print(f"[info]Available: {available}[/info]\n")
+            return
+
+        console.print(f"\n[bold green]Agent: {agent_name}[/bold green]")
+        self.current_status = console.status(
+            f"[bold yellow][{agent_name}] Thinking...", spinner="dots"
+        )
+        with self.current_status:
+            result = tool.execute(task=task)
+
+        console.print(Markdown(result))
+
     def handle_context_command(self, args: str):
         """Handle /context command.
 
@@ -709,6 +754,10 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
 
                     elif command == "context":
                         self.handle_context_command(args)
+                        continue
+
+                    elif command == "agent":
+                        self.handle_agent_command(args)
                         continue
 
                     elif command == "reset-confirm":

@@ -31,16 +31,16 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 **Search & Discovery:**
 - `glob` - Find files matching patterns (supports `**` for recursive search)
 - `search_file_content` - Search text in files with regex support
-- `codebase_investigator` - Analyze project structure
 
 **Shell & Web:**
 - `run_shell_command` - Execute shell commands (requires confirmation)
 - `web_fetch` - Fetch and extract content from URLs (requires confirmation)
 - `google_web_search` - Search the web via DuckDuckGo (requires confirmation)
 
-**Special Features:**
+**Agents & Skills:**
+- `agent_codebase_investigator` - Delegate read-only codebase exploration to a sub-agent
+- `agent_generalist` - Delegate complex multi-step tasks to a sub-agent
 - `activate_skill` - Activate specialized skills for specific tasks
-- `cli_help` - Get help with CLI usage
 
 ### 🧠 Context Window Management
 
@@ -73,6 +73,20 @@ The spinner updates in real time to show what the agent is doing:
 - **"Thinking..."** - waiting for LLM response
 - **"⚙ tool_name (arg)"** - executing a specific tool
 - **Structured reasoning** - before each set of tool calls the agent prints (in blue) its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
+
+### 🤖 SubAgent System
+
+ChatAgent can delegate tasks to independent sub-agents, each running its own LLM loop with scoped tools and turn limits. Inspired by [Gemini CLI](https://github.com/google-gemini/gemini-cli)'s "agent as tool" pattern.
+
+**Built-in agents:**
+- `codebase-investigator` — read-only codebase exploration (find files, search patterns, analyze structure)
+- `generalist` — general-purpose agent with access to all tools for complex multi-step tasks
+
+**Two trigger paths:**
+1. **LLM-driven** — the parent LLM decides to delegate via `agent_codebase_investigator` / `agent_generalist` tools
+2. **User-driven** — use `/agent <name> <task>` to call an agent directly
+
+**Custom agents:** create `.chatagent/agents/my-agent.md` with YAML frontmatter (`name`, `description`, `tools`, `max_turns`) — auto-discovered at startup.
 
 ### 🎯 Dynamic Skills System
 
@@ -223,6 +237,8 @@ All commands start with `/`. Type `/` and press **Tab** for autocomplete.
 | `/memory clear` | Clear all memories (with confirmation) |
 | `/context` | Show current context window usage (tokens and %) |
 | `/context limit <n>` | Set context window limit (e.g., `/context limit 100000`) |
+| `/agent` | List available sub-agents |
+| `/agent <name> <task>` | Run a sub-agent directly (e.g., `/agent codebase-investigator find all API endpoints`) |
 | `/reset-confirm` | Reset "allow all tools" mode (keeps conversation history) |
 | `/exit` or `/quit` | Exit the program |
 
@@ -294,6 +310,14 @@ You: /context limit 100000        (set a lower context limit)
 You: /status                      (see memory count and context %)
 ```
 
+**Using agents:**
+```
+You: Analyze the project structure and find all API endpoints
+     (LLM may auto-delegate to codebase-investigator)
+/agent codebase-investigator find all TODO comments in this project
+/agent generalist refactor the logging module to use structured output
+```
+
 **Using skills:**
 ```
 You: Activate the pdf skill to help me merge PDF files
@@ -341,6 +365,13 @@ chatagent/
     ├── context_manager.py   # Context window management + Agentic RAG
     ├── llm/
     │   └── client.py        # OpenAI-compatible LLM client
+    ├── agents/
+    │   ├── __init__.py      # SubAgent exports
+    │   ├── manager.py       # AgentManager — loads definitions, creates wrappers
+    │   ├── tools.py         # TaskComplete, CompleteTaskTool, AgentToolWrapper
+    │   └── definitions/     # Built-in agent definitions (.md with YAML frontmatter)
+    │       ├── codebase-investigator.md
+    │       └── generalist.md
     ├── tools/
     │   ├── base.py          # Tool base class + registry
     │   ├── file_ops.py      # Read, write, edit, list
@@ -348,7 +379,6 @@ chatagent/
     │   ├── shell.py         # Shell execution
     │   ├── web.py           # Fetch, search
     │   ├── memory.py        # Persistent memory (6 tools)
-    │   ├── agents.py        # Helper agents
     │   └── skill.py         # Skill activation
     └── skills/
         └── manager.py       # Skill loading and management
@@ -425,6 +455,26 @@ class MyTool(Tool):
 ```python
 tools_to_register.append(MyTool())
 ```
+
+### Adding an Agent
+
+Create a Markdown file with YAML frontmatter. Built-in agents go in `chatagent/agents/definitions/`, project-level agents go in `.chatagent/agents/`.
+
+```yaml
+---
+name: my-agent
+description: "When to use this agent (shown to LLM for delegation decisions)"
+tools:                    # optional — omit for all tools
+  - read_file
+  - search_file_content
+  - run_shell_command
+max_turns: 10             # optional, default 15
+---
+You are a specialized agent. Instructions for the sub-agent go here.
+When finished, call complete_task to return your result.
+```
+
+Restart ChatAgent — agents are auto-discovered and registered as `agent_my_agent` tools.
 
 ### Adding a Skill
 

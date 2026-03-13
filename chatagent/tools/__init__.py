@@ -13,7 +13,6 @@ from .memory import (
     FilterMemoryByTagTool,
     ListMemoryTool,
 )
-from .agents import CLIHelpAgentTool, CodebaseInvestigatorTool
 from .skill import ActivateSkillTool
 from .ask_user import AskUserTool
 
@@ -35,8 +34,6 @@ __all__ = [
     "ClearMemoryTool",
     "FilterMemoryByTagTool",
     "ListMemoryTool",
-    "CLIHelpAgentTool",
-    "CodebaseInvestigatorTool",
     "ActivateSkillTool",
     "AskUserTool",
 ]

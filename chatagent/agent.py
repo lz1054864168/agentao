@@ -18,11 +18,10 @@ from .tools import (
     WebFetchTool,
     GoogleSearchTool,
     SaveMemoryTool,
-    CLIHelpAgentTool,
-    CodebaseInvestigatorTool,
     ActivateSkillTool,
     AskUserTool,
 )
+from .agents import AgentManager, TaskComplete
 from .skills import SkillManager
 from .context_manager import ContextManager, is_context_too_long_error
 
@@ -96,6 +95,13 @@ class ChatAgent:
         self.thinking_callback = thinking_callback
         self.ask_user_callback = ask_user_callback
 
+        # Save LLM config for sub-agent creation
+        self._llm_config = {
+            "api_key": api_key,
+            "base_url": base_url,
+            "model": model,
+        }
+
         # Initialize context manager
         self.context_manager = ContextManager(
             llm_client=self.llm,
@@ -106,6 +112,10 @@ class ChatAgent:
         # Initialize tool registry
         self.tools = ToolRegistry()
         self._register_tools()
+
+        # Initialize agent manager and register agent tools
+        self.agent_manager = AgentManager()
+        self._register_agent_tools()
 
         # Conversation history
         self.messages: List[Dict[str, Any]] = []
@@ -144,14 +154,25 @@ class ChatAgent:
             WebFetchTool(),
             GoogleSearchTool(),
             self.memory_tool,
-            CLIHelpAgentTool(),
-            CodebaseInvestigatorTool(),
             ActivateSkillTool(self.skill_manager),
             AskUserTool(ask_user_callback=self.ask_user_callback),
         ]
 
         for tool in tools_to_register:
             self.tools.register(tool)
+
+    def _register_agent_tools(self):
+        """Register agent tools (after base tools are registered)."""
+        if self.agent_manager is None:
+            return
+        agent_tools = self.agent_manager.create_agent_tools(
+            all_tools=self.tools.tools,
+            llm_config=self._llm_config,
+            confirmation_callback=self.confirmation_callback,
+            step_callback=self.step_callback,
+        )
+        for agent_tool in agent_tools:
+            self.tools.register(agent_tool)
 
     def _build_reliability_section(self) -> str:
         """Return reliability principles injected unconditionally into every system prompt."""
@@ -260,6 +281,17 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
         skills_context = self.skill_manager.get_skills_context()
         if skills_context:
             prompt += "\n\n" + skills_context
+
+        # Add available agents section
+        if self.agent_manager:
+            agent_descriptions = self.agent_manager.list_agents()
+            if agent_descriptions:
+                prompt += "\n\n=== Available Agents ===\n"
+                prompt += "For the following types of tasks, prefer delegating to a specialized agent:\n\n"
+                for agent_name, desc in agent_descriptions.items():
+                    tool_name = f"agent_{agent_name.replace('-', '_')}"
+                    prompt += f"- {agent_name}: {desc} (use tool: {tool_name})\n"
+                prompt += "\nCall the corresponding agent tool to delegate a task."
 
         # Inject reliability principles unconditionally
         prompt += self._build_reliability_section()
@@ -451,6 +483,8 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                         else:
                             # No confirmation needed or no callback provided
                             result = tool.execute(**function_args)
+                    except TaskComplete as tc:
+                        result = tc.result
                     except Exception as e:
                         result = f"Error executing {function_name}: {str(e)}"
 
