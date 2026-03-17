@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 from typing import Any, Dict
 from urllib.parse import quote_plus
 
@@ -10,16 +11,20 @@ from bs4 import BeautifulSoup
 
 from .base import Tool
 
+logger = logging.getLogger("chatagent.tools.web")
+
 try:
-    from crawl4ai import AsyncWebCrawler
+    from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
     _CRAWL4AI_AVAILABLE = True
 except ImportError:
     _CRAWL4AI_AVAILABLE = False
 
 
 async def _fetch_with_crawl4ai(url: str) -> str:
-    async with AsyncWebCrawler() as crawler:
-        result = await crawler.arun(url=url)
+    config = BrowserConfig(enable_stealth=True, headless=True, verbose=False)
+    run_config = CrawlerRunConfig(verbose=False)
+    async with AsyncWebCrawler(config=config) as crawler:
+        result = await crawler.arun(url=url, config=run_config)
         return result.markdown or ""
 
 
@@ -61,6 +66,7 @@ class WebFetchTool(Tool):
         """Fetch web content."""
         if _CRAWL4AI_AVAILABLE:
             try:
+                logger.info("crawl4ai: fetching %s", url)
                 try:
                     markdown = asyncio.run(_fetch_with_crawl4ai(url))
                 except RuntimeError:
@@ -72,7 +78,8 @@ class WebFetchTool(Tool):
                 if len(markdown) > 20000:
                     markdown = markdown[:20000] + "\n\n[Content truncated...]"
                 return f"URL: {url}\n\n{markdown}"
-            except Exception:
+            except Exception as e:
+                logger.warning("crawl4ai failed for %s, falling back to httpx: %s", url, e)
                 pass
 
         try:

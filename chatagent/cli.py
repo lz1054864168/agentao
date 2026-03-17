@@ -1,5 +1,8 @@
 """CLI interface for ChatAgent."""
 
+import warnings
+warnings.filterwarnings("ignore", message="urllib3.*or chardet.*doesn't match")
+
 import os
 import sys
 from typing import Optional

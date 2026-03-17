@@ -36,12 +36,14 @@ class LLMClient:
             base_url=self.base_url,
         )
 
-        # Setup logging
+        # Setup logging — attach FileHandler to the package root so all
+        # child loggers (chatagent.llm, chatagent.tools.web, etc.) inherit it.
         self.logger = logging.getLogger("chatagent.llm")
-        self.logger.setLevel(logging.DEBUG)
+        pkg_logger = logging.getLogger("chatagent")
+        pkg_logger.setLevel(logging.DEBUG)
 
-        # Remove existing handlers to avoid duplicates
-        self.logger.handlers.clear()
+        # Remove existing handlers to avoid duplicates on hot-reload
+        pkg_logger.handlers.clear()
 
         # File handler for detailed logs
         file_handler = logging.FileHandler(log_file, encoding="utf-8")
@@ -54,7 +56,7 @@ class LLMClient:
         )
         file_handler.setFormatter(file_formatter)
 
-        self.logger.addHandler(file_handler)
+        pkg_logger.addHandler(file_handler)
 
         # Request counter for tracking
         self.request_count = 0
