@@ -1,7 +1,6 @@
 """Web-related tools."""
 
 import asyncio
-import json
 import logging
 from typing import Any, Dict
 from urllib.parse import quote_plus
@@ -19,6 +18,54 @@ try:
 except ImportError:
     _CRAWL4AI_AVAILABLE = False
 
+# SPA/JS-framework fingerprints that indicate server-side content is absent
+_JS_MARKERS = [
+    "__NEXT_DATA__",        # Next.js
+    "__nuxt__",             # Nuxt.js
+    "data-reactroot",       # React
+    "data-react-helmet",    # React Helmet
+    "ng-version",           # Angular
+    "__vue__",              # Vue devtools hook
+    "data-server-rendered", # Vue SSR (but still needs hydration)
+    "ember-application",    # Ember
+    "svelte-",              # Svelte
+    "__remix_manifest",     # Remix
+]
+
+# Ratio of visible text to raw HTML below this threshold → likely JS-rendered
+_TEXT_RATIO_THRESHOLD = 0.05
+# Absolute visible text shorter than this (chars) → likely JS-rendered
+_MIN_TEXT_LENGTH = 200
+
+
+def _needs_js_rendering(html: str, soup: BeautifulSoup) -> bool:
+    """Return True if the page likely requires JavaScript to show its content."""
+    # Check framework fingerprints
+    for marker in _JS_MARKERS:
+        if marker in html:
+            return True
+
+    # Check text/HTML ratio
+    text = soup.get_text(separator=" ", strip=True)
+    text_len = len(text)
+    html_len = len(html)
+
+    if html_len > 0 and text_len / html_len < _TEXT_RATIO_THRESHOLD:
+        return True
+    if text_len < _MIN_TEXT_LENGTH and html_len > 5000:
+        return True
+
+    return False
+
+
+def _extract_text(soup: BeautifulSoup) -> str:
+    for tag in soup(["script", "style", "nav", "footer"]):
+        tag.decompose()
+    text = soup.get_text()
+    lines = (line.strip() for line in text.splitlines())
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    return "\n".join(chunk for chunk in chunks if chunk)
+
 
 async def _fetch_with_crawl4ai(url: str) -> str:
     config = BrowserConfig(enable_stealth=True, headless=True, verbose=False)
@@ -26,6 +73,14 @@ async def _fetch_with_crawl4ai(url: str) -> str:
     async with AsyncWebCrawler(config=config) as crawler:
         result = await crawler.arun(url=url, config=run_config)
         return result.markdown or ""
+
+
+def _run_async(coro):
+    try:
+        return asyncio.run(coro)
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(coro)
 
 
 class WebFetchTool(Tool):
@@ -37,7 +92,11 @@ class WebFetchTool(Tool):
 
     @property
     def description(self) -> str:
-        return "Fetch content from a URL. Uses Crawl4AI (if installed) to return clean Markdown; otherwise falls back to plain text extraction."
+        return (
+            "Fetch content from a URL. Uses a fast HTTP fetch first; "
+            "automatically falls back to Crawl4AI (headless browser) if the "
+            "page requires JavaScript rendering."
+        )
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -59,70 +118,61 @@ class WebFetchTool(Tool):
 
     @property
     def requires_confirmation(self) -> bool:
-        """Web fetch requires user confirmation for safety."""
         return True
 
     def execute(self, url: str, extract_text: bool = True) -> str:
-        """Fetch web content."""
-        if _CRAWL4AI_AVAILABLE:
-            try:
-                logger.info("crawl4ai: fetching %s", url)
-                try:
-                    markdown = asyncio.run(_fetch_with_crawl4ai(url))
-                except RuntimeError:
-                    loop = asyncio.get_event_loop()
-                    markdown = loop.run_until_complete(_fetch_with_crawl4ai(url))
+        """Fetch web content, auto-detecting JS-heavy pages."""
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
 
-                if not markdown:
-                    markdown = "[No content extracted]"
-                if len(markdown) > 20000:
-                    markdown = markdown[:20000] + "\n\n[Content truncated...]"
-                return f"URL: {url}\n\n{markdown}"
-            except Exception as e:
-                logger.warning("crawl4ai failed for %s, falling back to httpx: %s", url, e)
-                pass
-
+        # --- Fast path: plain HTTP fetch ---
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-
             with httpx.Client(follow_redirects=True, timeout=30.0) as client:
                 response = client.get(url, headers=headers)
                 response.raise_for_status()
 
-                if extract_text:
-                    soup = BeautifulSoup(response.text, "html.parser")
+            html = response.text
+            soup = BeautifulSoup(html, "html.parser")
 
-                    # Remove script and style elements
-                    for script in soup(["script", "style", "nav", "footer"]):
-                        script.decompose()
+            if _CRAWL4AI_AVAILABLE and _needs_js_rendering(html, soup):
+                logger.info("JS rendering detected for %s, using crawl4ai", url)
+                return self._crawl4ai_fetch(url)
 
-                    # Get text
-                    text = soup.get_text()
-
-                    # Clean up whitespace
-                    lines = (line.strip() for line in text.splitlines())
-                    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                    text = "\n".join(chunk for chunk in chunks if chunk)
-
-                    # Limit length
-                    if len(text) > 10000:
-                        text = text[:10000] + "\n\n[Content truncated...]"
-
-                    return f"URL: {url}\nStatus: {response.status_code}\n\n{text}"
-                else:
-                    content = response.text
-                    if len(content) > 10000:
-                        content = content[:10000] + "\n\n[Content truncated...]"
-                    return f"URL: {url}\nStatus: {response.status_code}\n\n{content}"
+            # Static page — extract directly
+            if extract_text:
+                text = _extract_text(soup)
+                if len(text) > 10000:
+                    text = text[:10000] + "\n\n[Content truncated...]"
+                return f"URL: {url}\nStatus: {response.status_code}\n\n{text}"
+            else:
+                content = html
+                if len(content) > 10000:
+                    content = content[:10000] + "\n\n[Content truncated...]"
+                return f"URL: {url}\nStatus: {response.status_code}\n\n{content}"
 
         except httpx.TimeoutException:
             return f"Error: Request timed out for {url}"
         except httpx.HTTPError as e:
-            return f"Error fetching URL: {str(e)}"
+            # Network/HTTP error — try crawl4ai as last resort
+            if _CRAWL4AI_AVAILABLE:
+                logger.warning("httpx failed for %s (%s), trying crawl4ai", url, e)
+                return self._crawl4ai_fetch(url)
+            return f"Error fetching URL: {e}"
         except Exception as e:
-            return f"Error: {str(e)}"
+            return f"Error: {e}"
+
+    def _crawl4ai_fetch(self, url: str) -> str:
+        try:
+            markdown = _run_async(_fetch_with_crawl4ai(url))
+            if not markdown:
+                markdown = "[No content extracted]"
+            if len(markdown) > 20000:
+                markdown = markdown[:20000] + "\n\n[Content truncated...]"
+            return f"URL: {url}\n\n{markdown}"
+        except Exception as e:
+            logger.warning("crawl4ai failed for %s: %s", url, e)
+            return f"Error: crawl4ai failed — {e}"
 
 
 class GoogleSearchTool(Tool):
@@ -156,13 +206,11 @@ class GoogleSearchTool(Tool):
 
     @property
     def requires_confirmation(self) -> bool:
-        """Web search requires user confirmation for safety."""
         return True
 
     def execute(self, query: str, num_results: int = 5) -> str:
         """Perform Google search."""
         try:
-            # Use DuckDuckGo HTML as a Google alternative (no API key required)
             encoded_query = quote_plus(query)
             url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
 
@@ -177,7 +225,6 @@ class GoogleSearchTool(Tool):
                 soup = BeautifulSoup(response.text, "html.parser")
                 results = []
 
-                # Parse DuckDuckGo results
                 for result_div in soup.find_all("div", class_="result", limit=num_results):
                     title_elem = result_div.find("a", class_="result__a")
                     snippet_elem = result_div.find("a", class_="result__snippet")
