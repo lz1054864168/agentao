@@ -1,6 +1,6 @@
 [project]
 name = "chatagent"
-version = "0.1.0"
+version = "0.1.1"
 description = "A CLI chat agent with tools and skills support"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -20,6 +20,9 @@ dependencies = [
     "openpyxl>=3.1.5",
     "pyyaml>=6.0.3",
 ]
+
+[project.optional-dependencies]
+crawl4ai = ["crawl4ai>=0.8.0"]
 
 [project.scripts]
 chatagent = "chatagent.cli:entrypoint"
