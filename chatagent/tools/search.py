@@ -1,11 +1,16 @@
 """Search tools."""
 
+import subprocess
+import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 import fnmatch
 import re
 
 from .base import Tool
+
+# Files modified within this window are sorted by recency
+RECENCY_THRESHOLD = 86400  # 24 hours
 
 
 class FindFilesTool(Tool):
@@ -37,8 +42,26 @@ class FindFilesTool(Tool):
             "required": ["pattern"],
         }
 
+    def _sort_by_recency(self, base_path: Path, file_paths: List[str]) -> List[str]:
+        """Sort files: recently modified (24h) by mtime desc, then rest alphabetically."""
+        now = time.time()
+        recent = []
+        older = []
+        for f in file_paths:
+            try:
+                mtime = (base_path / f).stat().st_mtime
+                if now - mtime < RECENCY_THRESHOLD:
+                    recent.append((f, mtime))
+                else:
+                    older.append(f)
+            except OSError:
+                older.append(f)
+        recent.sort(key=lambda x: x[1], reverse=True)  # newest first
+        older.sort()  # alphabetical
+        return [f for f, _ in recent] + older
+
     def execute(self, pattern: str, directory: str = ".") -> str:
-        """Find files matching pattern."""
+        """Find files matching pattern, with recently modified files listed first."""
         try:
             path = Path(directory).expanduser()
             if not path.exists():
@@ -46,12 +69,10 @@ class FindFilesTool(Tool):
 
             matches = []
             if "**" in pattern:
-                # Recursive search
                 for item in path.rglob(pattern.replace("**/", "")):
                     if item.is_file():
                         matches.append(str(item.relative_to(path)))
             else:
-                # Non-recursive search
                 for item in path.glob(pattern):
                     if item.is_file():
                         matches.append(str(item.relative_to(path)))
@@ -59,7 +80,8 @@ class FindFilesTool(Tool):
             if not matches:
                 return f"No files found matching pattern: {pattern}"
 
-            return f"Found {len(matches)} file(s):\n\n" + "\n".join(sorted(matches))
+            sorted_matches = self._sort_by_recency(path, matches)
+            return f"Found {len(sorted_matches)} file(s):\n\n" + "\n".join(sorted_matches)
         except Exception as e:
             return f"Error finding files: {str(e)}"
 
@@ -108,6 +130,81 @@ class SearchTextTool(Tool):
             "required": ["pattern"],
         }
 
+    def _is_git_repo(self, directory: Path) -> bool:
+        """Check if directory is inside a git repository."""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=str(directory),
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return False
+
+    def _git_grep(
+        self,
+        directory: Path,
+        pattern: str,
+        file_pattern: str,
+        case_sensitive: bool,
+        regex: bool,
+    ) -> Optional[str]:
+        """Try searching with git grep. Returns formatted result string, or None if git grep fails."""
+        try:
+            cmd = ["git", "grep", "-n", "--no-color"]
+            if not case_sensitive:
+                cmd.append("-i")
+            if not regex:
+                cmd.append("-F")  # fixed string (literal) mode
+
+            # File pattern filter
+            if file_pattern and file_pattern != "**/*":
+                # Convert glob to git pathspec
+                # e.g., "*.py" -> "*.py", "**/*.py" -> "*.py"
+                clean_pattern = file_pattern.replace("**/", "")
+                cmd.extend(["--", clean_pattern])
+
+            # Insert pattern before pathspec args
+            if file_pattern and file_pattern != "**/*":
+                cmd.insert(-2, pattern)
+            else:
+                cmd.append(pattern)
+
+            result = subprocess.run(
+                cmd,
+                cwd=str(directory),
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+            if result.returncode == 1:
+                # No matches
+                return f"No matches found for pattern: {pattern}"
+            if result.returncode != 0:
+                # git grep error, fall back
+                return None
+
+            lines = result.stdout.strip().splitlines()
+            total = len(lines)
+
+            if total == 0:
+                return f"No matches found for pattern: {pattern}"
+
+            result_text = f"Found {total} match(es):\n\n"
+            if total > 100:
+                result_text += "\n".join(lines[:100])
+                result_text += f"\n\n... and {total - 100} more matches"
+            else:
+                result_text += "\n".join(lines)
+
+            return result_text
+        except (subprocess.SubprocessError, FileNotFoundError):
+            return None
+
     def execute(
         self,
         pattern: str,
@@ -116,13 +213,19 @@ class SearchTextTool(Tool):
         case_sensitive: bool = True,
         regex: bool = False,
     ) -> str:
-        """Search for text in files."""
+        """Search for text in files. Uses git grep when available for performance."""
         try:
-            path = Path(directory).expanduser()
+            path = Path(directory).expanduser().resolve()
             if not path.exists():
                 return f"Error: Directory {directory} does not exist"
 
-            # Compile regex pattern
+            # Try git grep first (much faster in git repos)
+            if self._is_git_repo(path):
+                result = self._git_grep(path, pattern, file_pattern, case_sensitive, regex)
+                if result is not None:
+                    return result
+
+            # Fallback: Python-based search
             if regex:
                 flags = 0 if case_sensitive else re.IGNORECASE
                 try:
@@ -133,7 +236,6 @@ class SearchTextTool(Tool):
                 if not case_sensitive:
                     pattern = pattern.lower()
 
-            # Find files to search
             files_to_search = []
             if "**" in file_pattern:
                 files_to_search = list(path.rglob(file_pattern.replace("**/", "")))
@@ -159,14 +261,12 @@ class SearchTextTool(Tool):
                                 rel_path = file_path.relative_to(path)
                                 results.append(f"{rel_path}:{line_num}: {line.rstrip()}")
                 except (UnicodeDecodeError, PermissionError):
-                    # Skip binary files or files we can't read
                     continue
 
             if not results:
                 return f"No matches found for pattern: {pattern}"
 
             result_text = f"Found {len(results)} match(es):\n\n"
-            # Limit results to avoid overwhelming output
             if len(results) > 100:
                 result_text += "\n".join(results[:100])
                 result_text += f"\n\n... and {len(results) - 100} more matches"
