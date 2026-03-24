@@ -10,7 +10,8 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 - Smart tool selection and execution
 - **Context window management** - automatic sliding-window compression with LLM summarization
 - **Dynamic memory recall** - Agentic RAG (no vector DB) recalls relevant memories per message
-- **Live thinking display** - shows LLM reasoning and tool calls in real time
+- **Live thinking display** - shows LLM reasoning and tool calls in real time with Rule separators
+- **Streaming shell output** - shell command stdout displayed in real-time as it executes
 - **Complete logging** of all LLM interactions to `chatagent.log`
 - **Auto-loading of project instructions** from `CHATAGENT.md` at startup
 - **Tool confirmation** - user confirmation required for Shell, Web, and destructive Memory tools
@@ -71,13 +72,27 @@ Before each response, ChatAgent automatically identifies and injects memories re
 
 This means important context you've saved (preferences, facts, project details) surfaces automatically when relevant, without you having to ask.
 
-### 💡 Live Thinking Display
+### 💡 Live Display & Streaming Output
 
-The spinner updates in real time to show what the agent is doing:
+The terminal display uses Rich Rule separators for clear visual structure:
 
-- **"Thinking..."** - waiting for LLM response
-- **"⚙ tool_name (arg)"** - executing a specific tool
-- **Structured reasoning** - before each set of tool calls the agent prints (in blue) its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
+```
+──────────────── Assistant ────────────────
+⚙ run_shell_command (ls -la)
+─────────────── output ────────────────────
+total 48
+drwxr-xr-x  5 user staff  160 Mar 24 10:00 .
+-rw-r--r--  1 user staff  234 Mar 24 09:55 cli.py
+───────────────────────────────────────────
+
+目录下有 3 个文件...
+```
+
+- **Rule separators** - Assistant, Thinking, and shell output sections are visually separated with `───` lines
+- **Streaming shell output** - stdout from shell commands is printed in real-time as the command executes (raw text, no Rich markup — clean for copy-paste). stderr is shown after the command completes.
+- **Tool step headers** - each tool call prints a visible `⚙ tool_name (arg)` line instead of just updating a spinner
+- **Thinking display** - LLM reasoning is shown in dim italic style under a `─── Thinking ───` separator
+- **Structured reasoning** - before each set of tool calls the agent prints its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
 
 ### 🤖 SubAgent System
 

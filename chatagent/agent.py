@@ -71,6 +71,8 @@ class ChatAgent:
         step_callback: Optional[Callable[[Optional[str], Dict[str, Any]], None]] = None,
         thinking_callback: Optional[Callable[[str], None]] = None,
         ask_user_callback: Optional[Callable[[str], str]] = None,
+        output_callback: Optional[Callable[[str, str], None]] = None,
+        tool_complete_callback: Optional[Callable[[str, int], None]] = None,
     ):
         """Initialize chat agent.
 
@@ -87,6 +89,10 @@ class ChatAgent:
                                before tool calls. Takes the reasoning string.
             ask_user_callback: Optional callback for ask_user tool. Takes (question) and returns
                                the user's free-form text response.
+            output_callback: Optional callback for streaming tool output.
+                             Takes (tool_name, text_chunk).
+            tool_complete_callback: Optional callback called after tool execution completes.
+                                    Takes (tool_name, returncode).
         """
         self.llm = LLMClient(api_key=api_key, base_url=base_url, model=model)
         self.skill_manager = SkillManager()
@@ -95,6 +101,8 @@ class ChatAgent:
         self.step_callback = step_callback
         self.thinking_callback = thinking_callback
         self.ask_user_callback = ask_user_callback
+        self.output_callback = output_callback
+        self.tool_complete_callback = tool_complete_callback
 
         # Save LLM config for sub-agent creation
         self._llm_config = {
@@ -522,6 +530,10 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                         if self.step_callback:
                             self.step_callback(function_name, function_args)
 
+                        # Wire output callback for streaming display
+                        if self.output_callback and hasattr(tool, 'output_callback'):
+                            tool.output_callback = lambda chunk, _fn=function_name: self.output_callback(_fn, chunk)
+
                         # Check if tool requires confirmation
                         if tool.requires_confirmation and self.confirmation_callback:
                             self.llm.logger.info(f"Tool {function_name} requires confirmation")
@@ -544,6 +556,12 @@ Use tools proactively whenever they provide ground truth. If you need clarificat
                         result = tc.result
                     except Exception as e:
                         result = f"Error executing {function_name}: {str(e)}"
+                    finally:
+                        # Clear output callback and notify completion
+                        if hasattr(tool, 'output_callback'):
+                            tool.output_callback = None
+                        if self.tool_complete_callback:
+                            self.tool_complete_callback(function_name)
 
                     # Truncate oversized tool results to avoid context overflow
                     if isinstance(result, str) and len(result) > MAX_TOOL_RESULT_CHARS:

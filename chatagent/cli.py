@@ -84,6 +84,7 @@ class ChatAgentCLI:
         # Track session-wide confirmation preferences
         self.allow_all_tools = False  # "Yes to all" mode
         self.current_status = None  # Track active status context
+        self._streaming_output = False  # Track if we're in streaming shell output mode
         provider = os.getenv("LLM_PROVIDER", "OPENAI").strip().upper()
         self.current_provider = provider  # Track active provider name
 
@@ -98,6 +99,8 @@ class ChatAgentCLI:
             step_callback=self.on_tool_step,
             thinking_callback=self.on_llm_thinking,
             ask_user_callback=self.ask_user,
+            output_callback=self.on_tool_output,
+            tool_complete_callback=self.on_tool_complete,
         )
 
         # prompt_toolkit session: multiline=True captures full paste; Enter submits
@@ -209,10 +212,9 @@ class ChatAgentCLI:
         if self.current_status:
             self.current_status.stop()
 
-        console.print(f"[bold blue]Thinking[/bold blue]")
-        # Indent each line for visual separation
+        console.rule("[dim]Thinking[/dim]", style="dim blue")
         for line in reasoning.strip().splitlines():
-            console.print(f"  [blue]{line}[/blue]")
+            console.print(f"  [dim italic]{line}[/dim italic]")
         console.print()
 
         # Resume spinner
@@ -220,7 +222,7 @@ class ChatAgentCLI:
             self.current_status.start()
 
     def on_tool_step(self, tool_name: Optional[str], tool_args: dict) -> None:
-        """Display tool call step in the thinking spinner.
+        """Display tool call step.
 
         Called with tool_name=None to reset back to "Thinking..." display.
 
@@ -228,21 +230,58 @@ class ChatAgentCLI:
             tool_name: Name of the tool being called, or None to reset
             tool_args: Arguments passed to the tool
         """
-        if not self.current_status:
-            return
-
         if tool_name is None:
-            self.current_status.update("[bold yellow]Thinking...[/bold yellow]")
+            # Reset to thinking state
+            if self.current_status:
+                self.current_status.update("[bold yellow]Thinking...[/bold yellow]")
             return
 
-        # Build a short summary of the key argument
+        # Stop spinner and print tool header as a visible line
+        if self.current_status:
+            self.current_status.stop()
+
         summary = _tool_args_summary(tool_name, tool_args)
         if summary:
-            label = f"[bold yellow]⚙ {tool_name}[/bold yellow] [dim]{summary}[/dim]"
+            console.print(f"[bold yellow]⚙ {tool_name}[/bold yellow] [dim]{summary}[/dim]")
         else:
-            label = f"[bold yellow]⚙ {tool_name}[/bold yellow]"
+            console.print(f"[bold yellow]⚙ {tool_name}[/bold yellow]")
 
-        self.current_status.update(label)
+        # Restart spinner
+        if self.current_status:
+            self.current_status.start()
+
+    def on_tool_output(self, tool_name: str, chunk: str) -> None:
+        """Display streaming tool output in real-time.
+
+        Args:
+            tool_name: Name of the tool producing output
+            chunk: Text chunk from tool stdout
+        """
+        if not self._streaming_output:
+            self._streaming_output = True
+            # Stop spinner before printing output
+            if self.current_status:
+                self.current_status.stop()
+            console.rule("[dim]output[/dim]", style="dim")
+
+        # Print raw chunk without Rich markup processing
+        console.print(chunk, end="", markup=False, highlight=False)
+
+    def on_tool_complete(self, tool_name: str) -> None:
+        """Called after a tool finishes execution.
+
+        Args:
+            tool_name: Name of the completed tool
+        """
+        if self._streaming_output:
+            # Ensure output ends with a newline before the closing rule
+            console.print()
+            console.rule(style="dim")
+            self._streaming_output = False
+
+        # Restart spinner for next tool or LLM call
+        if self.current_status:
+            self.current_status.start()
 
     def ask_user(self, question: str) -> str:
         """Pause spinner, display question, read free-form user response, resume spinner.
@@ -930,12 +969,13 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
                         continue
 
                 # Process with agent
-                console.print("\n[bold green]Assistant[/bold green]")
+                console.rule("[bold green]Assistant[/bold green]", style="green")
                 self.current_status = console.status("[bold yellow]Thinking...", spinner="dots")
                 with self.current_status:
                     response = self.agent.chat(user_input)
 
-                # Display response
+                # Display response (blank line separates tool output from final answer)
+                console.print()
                 console.print(Markdown(response))
 
             except KeyboardInterrupt:

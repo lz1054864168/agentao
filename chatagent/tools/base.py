@@ -1,11 +1,14 @@
 """Base tool classes."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 
 class Tool(ABC):
     """Base class for all tools."""
+
+    def __init__(self):
+        self.output_callback: Optional[Callable[[str], None]] = None
 
     @property
     @abstractmethod

@@ -6,7 +6,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from .base import Tool
 
@@ -203,13 +203,19 @@ class ShellTool(Tool):
         stderr_chunks: List[bytes] = []
         last_activity = [time.monotonic()]
         timed_out = [False]
+        callback = self.output_callback
 
-        def _read(stream, chunks: List[bytes]) -> None:
+        def _read(stream, chunks: List[bytes], on_chunk: Optional[Callable[[str], None]] = None) -> None:
             for chunk in iter(lambda: stream.read(4096), b""):
                 chunks.append(chunk)
                 last_activity[0] = time.monotonic()
+                if on_chunk and not _is_binary(chunk):
+                    try:
+                        on_chunk(chunk.decode("utf-8", errors="replace"))
+                    except Exception:
+                        pass  # Never let display errors kill the reader thread
 
-        t_out = threading.Thread(target=_read, args=(proc.stdout, stdout_chunks), daemon=True)
+        t_out = threading.Thread(target=_read, args=(proc.stdout, stdout_chunks, callback), daemon=True)
         t_err = threading.Thread(target=_read, args=(proc.stderr, stderr_chunks), daemon=True)
         t_out.start()
         t_err.start()
