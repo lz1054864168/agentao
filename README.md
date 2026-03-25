@@ -1,28 +1,141 @@
 # Agentao (Agent + Tao)
 
-> **Agentao: The invisible path of intelligence.**
-> （Agentao：智能的无形之道。）
+> **"Order in Chaos, Path in Intelligence."**
+>
+> **Agentao** is the *running path* of the intelligent agent — an Agent Harness inspired by Eastern philosophy, combining rigorous governance with fluid orchestration.
+>
+> *"Tao" (道) represents the underlying Laws, Methods, and Paths that govern all things. In Agentao, it is the invisible structure that keeps autonomous agents safe, connected, and observable.*
 
-A powerful CLI chat agent with tools and skills support. Built with Python and designed to work with any OpenAI-compatible API.
+A powerful CLI chat agent harness with tools, skills, and MCP support. Built with Python and designed to work with any OpenAI-compatible API.
 
-## Features
+---
 
-### 🤖 Intelligent Agent
-- Multi-turn conversations with context
-- Function calling for tool usage
+## Why Agentao?
+
+Most agent frameworks give you power. **Agentao gives you power with discipline.**
+
+The name itself encodes the design: *Agent* (capability) + *Tao* (governance). Every feature is built around three pillars of the Harness Philosophy:
+
+| Pillar | What it means | How Agentao implements it |
+|--------|--------------|--------------------------|
+| **Constraint** (约束) | Agents must not act without consent | Tool Confirmation — shell, web, and destructive ops pause for human approval |
+| **Connectivity** (连接) | Agents must reach the world beyond their training | MCP Protocol — seamlessly connects to any external service via stdio or SSE |
+| **Observability** (可观测性) | Agents must show their work | Live Thinking display + Complete Logging — every reasoning step and tool call is visible |
+
+**One-liner demo** — try it right after install:
+
+```bash
+# Ask Agentao to analyze the current directory
+agentao -p "List all Python files here and summarize what each one does"
+```
+
+---
+
+## Core Capabilities
+
+### 🏛️ Autonomous Governance (自治治理)
+
+A disciplined agent that acts deliberately, not impulsively:
+
+- Multi-turn conversations with persistent context
+- Function calling for structured tool usage
 - Smart tool selection and execution
-- **Context window management** - automatic sliding-window compression with LLM summarization
-- **Dynamic memory recall** - Agentic RAG (no vector DB) recalls relevant memories per message
-- **Live thinking display** - shows LLM reasoning and tool calls in real time with Rule separators
-- **Streaming shell output** - shell command stdout displayed in real-time as it executes
-- **Complete logging** of all LLM interactions to `agentao.log`
+- **Tool confirmation** — user approval required for Shell, Web, and destructive Memory operations
+- **Reliability principles** — system prompt enforces read-before-assert, discrepancy reporting, and fact/inference distinction on every turn
+- **Operational guidelines** — tone & style rules, shell command efficiency patterns, tool parallelism, non-interactive flags, and explain-before-act security rules
 - **Auto-loading of project instructions** from `AGENTAO.md` at startup
-- **Tool confirmation** - user confirmation required for Shell, Web, and destructive Memory tools
-- **Current date context** - system prompt includes current date and time
-- **Multi-line paste support** - paste multi-line text and the entire content enters the input buffer as one unit (prompt_toolkit native; no timing hacks); press Alt+Enter to insert a manual newline, Enter to submit
-- **Slash command Tab completion** - type `/` and press Tab for an autocomplete menu of all `/` commands
-- **Reliability principles** - system prompt enforces read-before-assert, discrepancy reporting, and fact/inference distinction on every turn
-- **Operational guidelines** - system prompt includes tone & style rules, shell command efficiency patterns (temp file redirect), tool usage rules (parallelism, non-interactive flags, respect cancellations), and security guidelines (explain-before-act)
+- **Current date context** — system prompt includes current date and time
+- **Live thinking display** — shows LLM reasoning and tool calls in real time with Rule separators
+- **Streaming shell output** — shell command stdout displayed in real-time as it executes
+- **Complete logging** of all LLM interactions to `agentao.log`
+- **Multi-line paste support** — paste multi-line text as one unit (prompt_toolkit native; Alt+Enter for manual newline, Enter to submit)
+- **Slash command Tab completion** — type `/` and press Tab for an autocomplete menu
+
+### 🧠 Elastic Context Engine (弹性上下文引擎)
+
+Agentao automatically manages long conversations to stay within LLM context limits:
+
+- **Token estimation** — tracks approximate token usage (characters ÷ 4)
+- **Sliding window compression** — when context exceeds 65% of the limit, early messages are summarized by the LLM and replaced with a compact `[Conversation Summary]` block; the split point always aligns to a `user` turn boundary so tool call sequences are never split mid-flight
+- **Tool result truncation** — tool outputs larger than 80K characters (~20K tokens) are truncated before being added to messages, preventing a single large response (e.g. reading a big file) from consuming the entire context window
+- **Auto-save summaries** — compression summaries are saved to memory with tag `conversation_summary` for future reference
+- **Graceful degradation** — if compression fails, the original messages are preserved unchanged
+- **Three-tier overflow recovery** — if the API returns a context-too-long error: (1) force-compress and retry; (2) if still too long, keep only the last 2 messages and retry; (3) only surfaces an error to the user if all three tiers fail
+
+Default context limit is 200K tokens. Override with `AGENTAO_CONTEXT_TOKENS` environment variable.
+
+### 💾 Cognitive Resonance (认知共鸣)
+
+*Agentic RAG without a vector database* — relevant memories surface automatically before each response:
+
+1. All saved memories are listed for the LLM
+2. The LLM returns a JSON array of relevant memory keys
+3. You are shown the recalled memories and asked whether to inject them (single-key confirmation)
+4. Confirmed memories are added to the system prompt for that turn
+
+This means important context you've saved (preferences, facts, project details) resonates back into the conversation when relevant — no manual retrieval needed.
+
+### 💡 Live Display & Streaming Output
+
+The terminal display uses Rich Rule separators for clear visual structure:
+
+```
+──────────────── Assistant ────────────────
+⚙ run_shell_command (ls -la)
+─────────────── output ────────────────────
+total 48
+drwxr-xr-x  5 user staff  160 Mar 24 10:00 .
+-rw-r--r--  1 user staff  234 Mar 24 09:55 cli.py
+───────────────────────────────────────────
+
+目录下有 3 个文件...
+```
+
+- **Rule separators** — Assistant, Thinking, and shell output sections are visually separated with `───` lines
+- **Streaming shell output** — stdout from shell commands is printed in real-time as the command executes (raw text, no Rich markup — clean for copy-paste). stderr is shown after the command completes.
+- **Tool step headers** — each tool call prints a visible `⚙ tool_name (arg)` line instead of just updating a spinner
+- **Thinking display** — LLM reasoning is shown in dim italic style under a `─── Thinking ───` separator
+- **Structured reasoning** — before each set of tool calls the agent prints its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
+
+### 🤖 SubAgent System
+
+Agentao can delegate tasks to independent sub-agents, each running its own LLM loop with scoped tools and turn limits. Inspired by [Gemini CLI](https://github.com/google-gemini/gemini-cli)'s "agent as tool" pattern.
+
+**Built-in agents:**
+- `codebase-investigator` — read-only codebase exploration (find files, search patterns, analyze structure)
+- `generalist` — general-purpose agent with access to all tools for complex multi-step tasks
+
+**Two trigger paths:**
+1. **LLM-driven** — the parent LLM decides to delegate via `agent_codebase_investigator` / `agent_generalist` tools
+2. **User-driven** — use `/agent <name> <task>` to call an agent directly
+
+**Custom agents:** create `.agentao/agents/my-agent.md` with YAML frontmatter (`name`, `description`, `tools`, `max_turns`) — auto-discovered at startup.
+
+### 🔌 MCP (Model Context Protocol) Support
+
+Connect to external MCP tool servers to dynamically extend the agent's capabilities. Agentao acts as the central hub connecting your LLM brain to the outside world:
+
+```mermaid
+graph LR
+  User((User)) -- CLI --> Agentao[Agentao Harness]
+  Agentao -- MCP --> Filesystem[Filesystem Server]
+  Agentao -- MCP --> GitHub[GitHub Server]
+  Agentao -- MCP --> Custom[Your Custom Server]
+  Agentao -- LLM API --> Brain[OpenAI / Gemini / DeepSeek]
+```
+
+- **Stdio transport** — spawn a local subprocess (e.g. `npx @modelcontextprotocol/server-filesystem`)
+- **SSE transport** — connect to remote HTTP/SSE endpoints
+- **Auto-discovery** — tools are discovered on startup and registered as `mcp_{server}_{tool}`
+- **Confirmation** — MCP tools require user confirmation unless the server is marked `"trust": true`
+- **Env var expansion** — `$VAR` and `${VAR}` syntax in config values
+- **Two-level config** — project `.agentao/mcp.json` overrides global `~/.agentao/mcp.json`
+
+### 🎯 Dynamic Skills System
+
+Skills are auto-discovered from the `skills/` directory. Each subdirectory contains a `SKILL.md` file with YAML frontmatter. Skills are listed in the system prompt and can be activated with the `activate_skill` tool.
+
+Add new skills by creating a directory with a `SKILL.md` file — no code changes needed.
 
 ### 🛠️ Comprehensive Tools
 
@@ -51,82 +164,17 @@ A powerful CLI chat agent with tools and skills support. Built with Python and d
 - Named `mcp_{server}_{tool}` (e.g. `mcp_filesystem_read_file`)
 - Require confirmation unless server is trusted
 
-### 🧠 Context Window Management
+---
 
-Agentao automatically manages long conversations to stay within LLM context limits:
+## Design Principles
 
-- **Token estimation** - tracks approximate token usage (characters ÷ 4)
-- **Sliding window compression** - when context exceeds 65% of the limit, early messages are summarized by the LLM and replaced with a compact `[Conversation Summary]` block; the split point always aligns to a `user` turn boundary so tool call sequences are never split mid-flight
-- **Tool result truncation** - tool outputs larger than 80K characters (~20K tokens) are truncated before being added to messages, preventing a single large response (e.g. reading a big file) from consuming the entire context window
-- **Auto-save summaries** - compression summaries are saved to memory with tag `conversation_summary` for future reference
-- **Graceful degradation** - if compression fails, the original messages are preserved unchanged
-- **Three-tier overflow recovery** - if the API returns a context-too-long error: (1) force-compress and retry; (2) if still too long, keep only the last 2 messages and retry; (3) only surfaces an error to the user if all three tiers fail
+Agentao is built around three foundational principles:
 
-Default context limit is 200K tokens. Override with `AGENTAO_CONTEXT_TOKENS` environment variable.
+1. **Minimalism (极简)** — Zero friction to start. `uv sync` and you're running. No databases, no complex config, no cloud dependencies.
 
-### 💾 Memory Recall (Agentic RAG)
+2. **Transparency (透明)** — No black boxes. The agent's reasoning chain is displayed in real time. Every LLM request, tool call, and token count is logged to `agentao.log`. You always know what the agent is doing and why.
 
-Before each response, Agentao automatically identifies and injects memories relevant to your question — no vector database required:
-
-1. All saved memories are listed for the LLM
-2. The LLM returns a JSON array of relevant memory keys
-3. You are shown the recalled memories and asked whether to inject them (single-key confirmation)
-4. Confirmed memories are added to the system prompt for that turn
-
-This means important context you've saved (preferences, facts, project details) surfaces automatically when relevant, without you having to ask.
-
-### 💡 Live Display & Streaming Output
-
-The terminal display uses Rich Rule separators for clear visual structure:
-
-```
-──────────────── Assistant ────────────────
-⚙ run_shell_command (ls -la)
-─────────────── output ────────────────────
-total 48
-drwxr-xr-x  5 user staff  160 Mar 24 10:00 .
--rw-r--r--  1 user staff  234 Mar 24 09:55 cli.py
-───────────────────────────────────────────
-
-目录下有 3 个文件...
-```
-
-- **Rule separators** - Assistant, Thinking, and shell output sections are visually separated with `───` lines
-- **Streaming shell output** - stdout from shell commands is printed in real-time as the command executes (raw text, no Rich markup — clean for copy-paste). stderr is shown after the command completes.
-- **Tool step headers** - each tool call prints a visible `⚙ tool_name (arg)` line instead of just updating a spinner
-- **Thinking display** - LLM reasoning is shown in dim italic style under a `─── Thinking ───` separator
-- **Structured reasoning** - before each set of tool calls the agent prints its **Action**, **Expectation**, and **If wrong** plan — a falsifiable prediction you can verify against the actual tool result
-
-### 🤖 SubAgent System
-
-Agentao can delegate tasks to independent sub-agents, each running its own LLM loop with scoped tools and turn limits. Inspired by [Gemini CLI](https://github.com/google-gemini/gemini-cli)'s "agent as tool" pattern.
-
-**Built-in agents:**
-- `codebase-investigator` — read-only codebase exploration (find files, search patterns, analyze structure)
-- `generalist` — general-purpose agent with access to all tools for complex multi-step tasks
-
-**Two trigger paths:**
-1. **LLM-driven** — the parent LLM decides to delegate via `agent_codebase_investigator` / `agent_generalist` tools
-2. **User-driven** — use `/agent <name> <task>` to call an agent directly
-
-**Custom agents:** create `.agentao/agents/my-agent.md` with YAML frontmatter (`name`, `description`, `tools`, `max_turns`) — auto-discovered at startup.
-
-### 🔌 MCP (Model Context Protocol) Support
-
-Connect to external MCP tool servers to dynamically extend the agent's capabilities:
-
-- **Stdio transport** — spawn a local subprocess (e.g. `npx @modelcontextprotocol/server-filesystem`)
-- **SSE transport** — connect to remote HTTP/SSE endpoints
-- **Auto-discovery** — tools are discovered on startup and registered as `mcp_{server}_{tool}`
-- **Confirmation** — MCP tools require user confirmation unless the server is marked `"trust": true`
-- **Env var expansion** — `$VAR` and `${VAR}` syntax in config values
-- **Two-level config** — project `.agentao/mcp.json` overrides global `~/.agentao/mcp.json`
-
-### 🎯 Dynamic Skills System
-
-Skills are auto-discovered from the `skills/` directory. Each subdirectory contains a `SKILL.md` file with YAML frontmatter. Skills are listed in the system prompt and can be activated with the `activate_skill` tool.
-
-Add new skills by creating a directory with a `SKILL.md` file — no code changes needed.
+3. **Integrity (完整)** — Context is never silently lost. Conversation history is compressed with LLM summarization (not truncated blindly), and memory recall ensures relevant context resurfaces automatically. The agent maintains a coherent world-model across sessions.
 
 ---
 
@@ -318,7 +366,12 @@ All commands start with `/`. Type `/` and press **Tab** for autocomplete.
 | `/confirm` | Show current tool confirmation mode |
 | `/confirm all` | Enable allow-all mode (tools execute without prompting) |
 | `/confirm prompt` | Restore prompt mode (ask before each tool) |
-| `/reset-confirm` | Reset "allow all tools" mode — legacy alias for `/confirm prompt` |
+| `/sessions` | List saved sessions |
+| `/sessions resume <id>` | Resume a saved session |
+| `/sessions delete <id>` | Delete a specific session |
+| `/sessions delete all` | Delete all saved sessions (with confirmation) |
+| `/tools` | List all registered tools with descriptions |
+| `/tools <name>` | Show parameter schema for a specific tool |
 | `/exit` or `/quit` | Exit the program |
 
 ### Tool Confirmation (Safety Feature)
@@ -411,20 +464,28 @@ You: Activate the pdf skill to help me merge PDF files
 You: Use the xlsx skill to analyze this spreadsheet
 ```
 
+**Inspecting tools:**
+```
+/tools                          (list all registered tools)
+/tools run_shell_command        (show parameter schema)
+/tools web_fetch                (check what args it accepts)
+```
+
 ---
 
 ## Project Instructions (AGENTAO.md)
 
-Agentao automatically loads project-specific instructions from `AGENTAO.md` if it exists in the current working directory. This file is injected into the system prompt at startup, allowing you to define:
+Agentao automatically loads project-specific instructions from `AGENTAO.md` if it exists in the current working directory. This is the most powerful customization feature — it injects your instructions at the *top* of the system prompt, making them higher-priority than any built-in agent guidelines.
+
+Use `AGENTAO.md` to define:
 
 - Code style and conventions
 - Project structure and patterns
 - Development workflows and testing approaches
 - Common commands and best practices
+- Reliability rules (e.g. require the agent to cite file and line number when making factual claims)
 
-If the file doesn't exist, the agent works normally with its default instructions.
-
-Project instructions are injected at the top of the system prompt, before built-in agent instructions — making them the highest-priority guidance for the LLM. A good `AGENTAO.md` includes code-style conventions, testing commands, and reliability rules such as requiring the agent to cite file and line number when making factual claims about the codebase.
+If the file doesn't exist, the agent works normally with its default instructions. Think of it as a per-project `.cursorrules` or `CLAUDE.md` — a lightweight way to give the agent deep project context without touching any code.
 
 ---
 
@@ -602,6 +663,20 @@ Documentation here...
 **MCP Server Not Connecting:** Run `/mcp list` to see status and error messages. Verify the command exists and is executable, or that the SSE URL is reachable. Check `agentao.log` for detailed connection errors.
 
 **Tool Execution Errors:** Check file permissions, path correctness, and that shell commands are valid for your OS.
+
+---
+
+## Etymology
+
+**Agentao** = *Agent* + *Tao* (道)
+
+**道 (Tao/Dào)** is a foundational concept in Chinese philosophy, representing the natural order that underlies all things. It carries three intertwined meanings:
+
+- **Laws (法则)** — the rules that constrain and shape behavior
+- **Methods (方法)** — the paths and techniques for accomplishing goals
+- **Paths (路径)** — the routes through which things flow and connect
+
+In the context of this project, *Tao* captures what an Agent Harness should be: not just a raw capability engine, but a **disciplined path** through which intelligent agents can act safely, transparently, and purposefully. An agent without Tao is powerful but unpredictable. Agentao is the structure that makes that power trustworthy.
 
 ---
 

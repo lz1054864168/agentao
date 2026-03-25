@@ -61,6 +61,7 @@ _SLASH_COMMANDS = [
     '/memory search', '/memory tag', '/model', '/permission', '/provider', '/quit',
     '/reset-confirm', '/sessions', '/sessions delete', '/sessions delete all', '/sessions list', '/sessions resume',
     '/skills', '/skills disable', '/skills enable', '/skills reload', '/status',
+    '/tools',
 ]
 
 
@@ -354,6 +355,7 @@ A CLI chat agent with tools and skills support.
 - `/context limit <n>` - Set context token limit
 - `/reset-confirm` - Reset tool confirmation only
 - `/sessions` - List, resume, or delete saved sessions (`/sessions delete all` to wipe all)
+- `/tools` - List all registered tools; `/tools <name>` shows parameter schema
 - `/permission` - Show active permission rules
 - `/exit` or `/quit` - Exit the program
 
@@ -951,6 +953,39 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
             console.print(f"[dim]Active skills: {', '.join(active_skills)}[/dim]")
         console.print()
 
+    def handle_tools_command(self, args: str):
+        """Handle /tools command.
+
+        Args:
+            args: Optional tool name to inspect. Empty to list all tools.
+        """
+        import json
+
+        args = args.strip()
+        all_tools = self.agent.tools.list_tools()
+
+        if not args:
+            console.print(f"\n[info]Registered Tools ({len(all_tools)}):[/info]\n")
+            for tool in sorted(all_tools, key=lambda t: t.name):
+                confirm = "  [warning]⚠ confirm[/warning]" if tool.requires_confirmation else ""
+                console.print(f"  [cyan]{tool.name}[/cyan]{confirm}")
+                console.print(f"    [dim]{tool.description}[/dim]")
+            console.print()
+            console.print("[dim]Use /tools <name> to see parameter schema.[/dim]\n")
+        else:
+            try:
+                tool = self.agent.tools.get(args)
+            except KeyError:
+                console.print(f"\n[error]Tool '{args}' not found.[/error]\n")
+                return
+            console.print(f"\n[info]{tool.name}[/info]")
+            console.print(f"[dim]{tool.description}[/dim]")
+            if tool.requires_confirmation:
+                console.print("[warning]Requires user confirmation before execution[/warning]")
+            console.print("\n[dim]Parameters schema:[/dim]")
+            console.print(json.dumps(tool.parameters, indent=2, ensure_ascii=False))
+            console.print()
+
     def _save_session_on_exit(self):
         """Save current session to disk if there are messages."""
         if not self.agent.messages:
@@ -1110,6 +1145,10 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
 
                     elif command == "sessions":
                         self.handle_sessions_command(args)
+                        continue
+
+                    elif command == "tools":
+                        self.handle_tools_command(args)
                         continue
 
                     else:
