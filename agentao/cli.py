@@ -391,41 +391,21 @@ class AgentaoCLI:
     def print_welcome(self):
         """Print welcome message."""
         current_model = self.agent.get_current_model()
-        welcome = f"""
-# Agentao
 
-A CLI chat agent with tools and skills support.
+        logo = [
+            "   ___                      _                ",
+            "  / _ \\ ___ _ ___  ___  ___| |_  ___  ___  ",
+            " /  _  // _` / -_)| _ \\/ _ \\  _|/ _` / _ \\ ",
+            "/_/ |_| \\__, \\___||_// \\___/\\__|\\__,_\\___/ ",
+        ]
 
-**Current Model:** `{current_model}`
-
-**Commands:**
-- `/help` - Show help message
-- `/model` - List or switch models
-- `/provider` - List or switch providers
-- `/clear` - Clear conversation and reset confirmation
-- `/status` - Show conversation status (memory count, context usage)
-- `/skills` - List available skills
-- `/memory [subcommand]` - Manage saved memories
-- `/mcp` - List MCP servers and tools
-- `/context` - Show context window usage
-- `/context limit <n>` - Set context token limit
-- `/reset-confirm` - Reset tool confirmation only
-- `/sessions` - List, resume, or delete saved sessions (`/sessions delete all` to wipe all)
-- `/tools` - List all registered tools; `/tools <name>` shows parameter schema
-- `/permission` - Show active permission rules
-- `/exit` or `/quit` - Exit the program
-
-**Features:**
-- Multi-turn conversations with context
-- File operations (read, write, edit)
-- Code search and analysis
-- Web fetching and search
-- Memory system
-- Claude Skills support
-
-Type your message to start chatting, or `/help` for more information!
-"""
-        console.print(Panel(Markdown(welcome), title="Welcome", border_style="cyan"))
+        console.print()
+        for line in logo:
+            console.print(f"[bold cyan]{line}[/bold cyan]")
+        console.print("[bold cyan]        |___/        [/bold cyan][bold yellow](The Way of Agents)[/bold yellow]")
+        console.print()
+        console.print(f"  [dim]Model:[/dim] [green]{current_model}[/green]  [dim]|[/dim]  [dim]Type[/dim] [cyan]/help[/cyan] [dim]for commands[/dim]")
+        console.print()
 
     def print_help(self):
         """Print help message."""
@@ -947,6 +927,8 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
                 console.print(f"    Saved: {s['timestamp']}")
                 if s["active_skills"]:
                     console.print(f"    Skills: {', '.join(s['active_skills'])}")
+                if s.get("first_user_msg"):
+                    console.print(f"    [dim]» {s['first_user_msg']}[/dim]")
                 console.print()
             console.print("[info]Usage:[/info] /sessions resume <id>  or  /sessions delete <id>  or  /sessions delete all\n")
 

@@ -1,5 +1,13 @@
 # Agentao (Agent + Tao)
 
+```
+   ___                      _
+  / _ \ ___ _ ___  ___  ___| |_  ___  ___
+ /  _  // _` / -_)| _ \/ _ \  _|/ _` / _ \
+/_/ |_| \__, \___||_// \___/\__|\__,_\___/
+        |___/        (The Way of Agents)
+```
+
 > **"Order in Chaos, Path in Intelligence."**
 >
 > **Agentao** is the *running path* of the intelligent agent — an Agent Harness inspired by Eastern philosophy, combining rigorous governance with fluid orchestration.
