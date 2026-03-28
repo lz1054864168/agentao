@@ -1,7 +1,7 @@
 """Test tool confirmation feature."""
 
 from unittest.mock import Mock, patch
-from chatagent.tools import ShellTool, WebFetchTool, GoogleSearchTool, ReadFileTool
+from agentao.tools import ShellTool, WebFetchTool, GoogleSearchTool, ReadFileTool
 
 
 def test_requires_confirmation_property():
@@ -29,18 +29,18 @@ def test_agent_with_confirmation_callback():
     """Test agent with confirmation callback."""
 
     # Mock the LLMClient and OpenAI
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
         # Create a mock confirmation callback
         confirmation_callback = Mock(return_value=True)
 
         # Create agent with confirmation callback
-        agent = ChatAgent(confirmation_callback=confirmation_callback)
+        agent = Agentao(confirmation_callback=confirmation_callback)
 
         assert agent.confirmation_callback is not None, "Confirmation callback should be set"
         print("✅ Agent accepts confirmation callback")
@@ -63,15 +63,15 @@ def test_confirmation_callback_signature():
         return True
 
     # Mock the LLMClient
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
         # Create agent with callback
-        agent = ChatAgent(confirmation_callback=sample_callback)
+        agent = Agentao(confirmation_callback=sample_callback)
 
         # Test callback
         result = agent.confirmation_callback("test_tool", "Test tool description", {"arg1": "value1"})
@@ -83,15 +83,15 @@ def test_confirmation_callback_signature():
 def test_no_confirmation_callback():
     """Test agent works without confirmation callback."""
 
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
         # Create agent without callback
-        agent = ChatAgent()
+        agent = Agentao()
 
         assert agent.confirmation_callback is None, "Confirmation callback should be None"
         print("✅ Agent works without confirmation callback")

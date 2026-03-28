@@ -14,7 +14,7 @@ from mcp.types import Tool as McpToolDef
 
 from .config import McpServerConfig
 
-logger = logging.getLogger("chatagent.mcp")
+logger = logging.getLogger("agentao.mcp")
 
 
 class ServerStatus(str, Enum):
@@ -130,33 +130,52 @@ class McpClient:
         )
 
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
-        """Call a tool on this server and return the result as text."""
-        if not self._session or self.status != ServerStatus.CONNECTED:
-            raise RuntimeError(f"MCP server '{self.name}' is not connected")
+        """Call a tool on this server and return the result as text.
 
-        result = await self._session.call_tool(tool_name, arguments)
+        Attempts one automatic reconnect if the server is disconnected or the
+        first call fails, then retries the tool call once.
+        """
+        for attempt in range(2):
+            if not self._session or self.status != ServerStatus.CONNECTED:
+                try:
+                    logger.info(f"MCP '{self.name}': reconnecting (attempt {attempt + 1})...")
+                    await self.connect()
+                except Exception as e:
+                    return f"MCP connection error for '{self.name}': {e}"
 
-        # Convert result content to text
-        parts = []
-        for block in result.content:
-            if block.type == "text":
-                parts.append(block.text)
-            elif block.type == "image":
-                parts.append(f"[image: {block.mimeType}]")
-            elif block.type == "resource":
-                text = getattr(block.resource, "text", None)
-                if text:
-                    parts.append(text)
+            try:
+                result = await self._session.call_tool(tool_name, arguments)
+            except Exception as e:
+                if attempt == 0:
+                    logger.warning(f"MCP '{self.name}' call failed, retrying after reconnect: {e}")
+                    self.status = ServerStatus.ERROR
+                    self._session = None
+                    continue
+                return f"MCP tool error: {e}"
+
+            # Convert result content to text
+            parts = []
+            for block in result.content:
+                if block.type == "text":
+                    parts.append(block.text)
+                elif block.type == "image":
+                    parts.append(f"[image: {block.mimeType}]")
+                elif block.type == "resource":
+                    text = getattr(block.resource, "text", None)
+                    if text:
+                        parts.append(text)
+                    else:
+                        parts.append(f"[resource: {getattr(block.resource, 'uri', 'unknown')}]")
                 else:
-                    parts.append(f"[resource: {getattr(block.resource, 'uri', 'unknown')}]")
-            else:
-                parts.append(f"[{block.type}]")
+                    parts.append(f"[{block.type}]")
 
-        text = "\n".join(parts)
+            text = "\n".join(parts)
 
-        if result.isError:
-            return f"MCP tool error: {text}"
-        return text
+            if result.isError:
+                return f"MCP tool error: {text}"
+            return text
+
+        return f"MCP tool error: failed after reconnect attempt"
 
     async def disconnect(self) -> None:
         """Disconnect from the server."""
@@ -206,13 +225,18 @@ class McpClientManager:
 
     async def _connect_all_async(self) -> None:
         """Connect to all servers concurrently."""
-        for name, config in self._configs.items():
+        async def _connect_one(name: str, config: McpServerConfig) -> None:
             client = McpClient(name, config)
             self._clients[name] = client
             try:
                 await client.connect()
             except Exception as e:
                 logger.error(f"Failed to start MCP server '{name}': {e}")
+
+        await asyncio.gather(
+            *[_connect_one(name, cfg) for name, cfg in self._configs.items()],
+            return_exceptions=True,
+        )
 
     def get_client(self, name: str) -> Optional[McpClient]:
         return self._clients.get(name)

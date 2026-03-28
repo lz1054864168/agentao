@@ -93,13 +93,21 @@ def list_sessions() -> List[Dict[str, Any]]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            messages = data.get("messages", [])
+            first_user_msg = next(
+                (m.get("content", "") for m in messages if m.get("role") == "user"),
+                None,
+            )
+            if first_user_msg and len(first_user_msg) > 80:
+                first_user_msg = first_user_msg[:77] + "..."
             result.append({
                 "id": path.stem,
                 "timestamp": data.get("timestamp", path.stem),
                 "model": data.get("model", "unknown"),
-                "message_count": len(data.get("messages", [])),
+                "message_count": len(messages),
                 "active_skills": data.get("active_skills", []),
                 "path": str(path),
+                "first_user_msg": first_user_msg,
             })
         except (IOError, json.JSONDecodeError):
             continue

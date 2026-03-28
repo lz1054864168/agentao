@@ -4,7 +4,7 @@
 
 ### 概述
 
-已将 ChatAgent 的命令系统更新为使用 `/` 前缀，使命令与普通消息明确区分。
+已将 Agentao 的命令系统更新为使用 `/` 前缀，使命令与普通消息明确区分。
 
 ### 更改内容
 
@@ -41,7 +41,7 @@ exit / quit
 
 #### 1. CLI 命令处理逻辑
 
-**文件**: `chatagent/cli.py`
+**文件**: `agentao/cli.py`
 
 **更改**：
 - 检查输入是否以 `/` 开头
@@ -121,7 +121,7 @@ if input_text.startswith('/'):
 #### 命令使用
 
 ```bash
-# 启动 ChatAgent
+# 启动 Agentao
 uv run python main.py
 
 # 使用命令（以 / 开头）
@@ -184,7 +184,7 @@ $ uv run python test_imports.py
 
 需要实际运行来测试：
 
-1. 启动 ChatAgent
+1. 启动 Agentao
 2. 尝试各种命令
 3. 测试错误处理
 4. 确认普通消息正常工作
@@ -205,7 +205,7 @@ $ uv run python test_imports.py
 
 启动时显示：
 ```
-ChatAgent
+Agentao
 
 Commands:
 - /help - Show help message
@@ -289,7 +289,7 @@ else:
 ```
 $ uv run python main.py
 
-Welcome to ChatAgent!
+Welcome to Agentao!
 
 Commands:
 - /help - Show help message

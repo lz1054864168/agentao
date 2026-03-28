@@ -26,13 +26,19 @@ class ActivateSkillTool(Tool):
 
     @property
     def parameters(self) -> Dict[str, Any]:
+        skill_prop = {
+            "type": "string",
+            "description": "Name of the skill to activate",
+        }
+        # Dynamic enum constraint to prevent typos (similar to Gemini CLI)
+        if self.skill_manager:
+            skill_names = list(self.skill_manager.list_available_skills())
+            if skill_names:
+                skill_prop["enum"] = skill_names
         return {
             "type": "object",
             "properties": {
-                "skill_name": {
-                    "type": "string",
-                    "description": "Name of the skill to activate (e.g., 'pdf', 'xlsx', 'pptx', 'doc-coauthoring')",
-                },
+                "skill_name": skill_prop,
                 "task_description": {
                     "type": "string",
                     "description": "Description of the task to perform with this skill",

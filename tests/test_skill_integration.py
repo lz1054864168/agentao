@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Test skill integration with ChatAgent."""
+"""Test skill integration with Agentao."""
 
 import os
-from chatagent import ChatAgent
+from agentao import Agentao
 
 
 def test_skill_with_resources():
     """Test that agent can access skill resources."""
     # Create agent
-    agent = ChatAgent()
+    agent = Agentao()
 
     print("=" * 70)
     print("Testing Skill Resource Access")

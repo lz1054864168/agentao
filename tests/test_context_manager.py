@@ -26,7 +26,7 @@ def _make_mock_llm(response_text: str = "[]"):
 
 
 def _make_memory_tool(tmp_path: str):
-    from chatagent.tools.memory import SaveMemoryTool
+    from agentao.tools.memory import SaveMemoryTool
     return SaveMemoryTool(memory_file=tmp_path)
 
 
@@ -44,20 +44,20 @@ def _make_messages(n: int) -> list:
 # ---------------------------------------------------------------------------
 
 def test_estimate_tokens_empty():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     assert cm.estimate_tokens([]) == 0
 
 
 def test_estimate_tokens_string_content():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     msgs = [{"role": "user", "content": "a" * 400}]
     assert cm.estimate_tokens(msgs) == 100  # 400 / 4 = 100
 
 
 def test_estimate_tokens_multiple_messages():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     msgs = [
         {"role": "user", "content": "a" * 400},
@@ -67,14 +67,14 @@ def test_estimate_tokens_multiple_messages():
 
 
 def test_estimate_tokens_list_content():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     msgs = [{"role": "user", "content": [{"type": "text", "text": "x" * 400}]}]
     assert cm.estimate_tokens(msgs) == 100
 
 
 def test_estimate_tokens_tool_calls():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     msgs = [
         {
@@ -92,7 +92,7 @@ def test_estimate_tokens_tool_calls():
 # ---------------------------------------------------------------------------
 
 def test_needs_compression_false_below_threshold():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=100_000)
     # 10 msgs * 50 chars = 500 chars / 4 = 125 tokens = 0.125% of 100K
     msgs = [{"role": "user", "content": "x" * 50} for _ in range(10)]
@@ -100,7 +100,7 @@ def test_needs_compression_false_below_threshold():
 
 
 def test_needs_compression_true_above_threshold():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=1_000)
     # 2000 msgs * 4 chars = 8000 chars / 4 = 2000 tokens >> 1000 * 0.8
     msgs = [{"role": "user", "content": "abcd"} for _ in range(2_000)]
@@ -112,7 +112,7 @@ def test_needs_compression_true_above_threshold():
 # ---------------------------------------------------------------------------
 
 def test_compress_messages_reduces_count():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('{"memories": []}')
@@ -132,7 +132,7 @@ def test_compress_messages_reduces_count():
 
 
 def test_compress_messages_prepends_summary_system_msg():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('{"memories": []}')
@@ -153,7 +153,7 @@ def test_compress_messages_prepends_summary_system_msg():
 
 
 def test_compress_messages_saves_summary_to_memory():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('{"memories": []}')
@@ -176,7 +176,7 @@ def test_compress_messages_saves_summary_to_memory():
 
 
 def test_compress_messages_graceful_on_llm_error():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     mock_llm = Mock()
     mock_llm.logger = Mock()
@@ -191,7 +191,7 @@ def test_compress_messages_graceful_on_llm_error():
 
 
 def test_compress_messages_too_few_messages():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     original = _make_messages(3)
@@ -207,7 +207,7 @@ def test_compress_messages_too_few_messages():
 # ---------------------------------------------------------------------------
 
 def test_get_usage_stats_structure():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=10_000)
     msgs = [{"role": "user", "content": "x" * 400}]
     stats = cm.get_usage_stats(msgs)
@@ -222,7 +222,7 @@ def test_get_usage_stats_structure():
 
 
 def test_get_usage_stats_correct_percent():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=1_000)
     # 400 chars / 4 = 100 tokens = 10% of 1000
     msgs = [{"role": "user", "content": "x" * 400}]
@@ -231,7 +231,7 @@ def test_get_usage_stats_correct_percent():
 
 
 def test_get_usage_stats_empty_messages():
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
     cm = ContextManager(_make_mock_llm(), Mock(), max_tokens=200_000)
     stats = cm.get_usage_stats([])
     assert stats["estimated_tokens"] == 0
@@ -245,7 +245,7 @@ def test_get_usage_stats_empty_messages():
 
 def test_full_flow_compress_saves_to_memory():
     """Integration test: compress messages saves summary to memory tool."""
-    from chatagent.context_manager import ContextManager
+    from agentao.context_manager import ContextManager
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
         f.write('{"memories": []}')

@@ -6,16 +6,16 @@ from unittest.mock import Mock, patch, MagicMock
 def test_status_paused_during_confirmation():
     """Test that status.stop() is called during confirmation."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
-            with patch('chatagent.cli.readchar') as mock_readchar:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
+            with patch('agentao.cli.readchar') as mock_readchar:
                 # Mock the agent instance
                 mock_agent = Mock()
                 mock_agent_class.return_value = mock_agent
 
-                from chatagent.cli import ChatAgentCLI
+                from agentao.cli import AgentaoCLI
 
-                cli = ChatAgentCLI()
+                cli = AgentaoCLI()
 
                 # Create a mock status object
                 mock_status = MagicMock()
@@ -47,15 +47,15 @@ def test_status_paused_during_confirmation():
 def test_status_resumed_on_cancel():
     """Test that status is resumed even when user cancels."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
-            with patch('chatagent.cli.readchar') as mock_readchar:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
+            with patch('agentao.cli.readchar') as mock_readchar:
                 mock_agent = Mock()
                 mock_agent_class.return_value = mock_agent
 
-                from chatagent.cli import ChatAgentCLI
+                from agentao.cli import AgentaoCLI
 
-                cli = ChatAgentCLI()
+                cli = AgentaoCLI()
                 mock_status = MagicMock()
                 cli.current_status = mock_status
 
@@ -78,15 +78,15 @@ def test_status_resumed_on_cancel():
 def test_status_resumed_on_error():
     """Test that status is resumed even when readchar raises error."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
-            with patch('chatagent.cli.readchar') as mock_readchar:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
+            with patch('agentao.cli.readchar') as mock_readchar:
                 mock_agent = Mock()
                 mock_agent_class.return_value = mock_agent
 
-                from chatagent.cli import ChatAgentCLI
+                from agentao.cli import AgentaoCLI
 
-                cli = ChatAgentCLI()
+                cli = AgentaoCLI()
                 mock_status = MagicMock()
                 cli.current_status = mock_status
 
@@ -109,14 +109,14 @@ def test_status_resumed_on_error():
 def test_status_not_paused_with_allow_all():
     """Test that status is NOT paused when allow_all mode is enabled."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
-            cli = ChatAgentCLI()
+            cli = AgentaoCLI()
             cli.allow_all_tools = True  # Enable allow all mode
 
             mock_status = MagicMock()
@@ -141,15 +141,15 @@ def test_status_not_paused_with_allow_all():
 def test_status_none_doesnt_crash():
     """Test that confirmation works even if current_status is None."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
-            with patch('chatagent.cli.readchar') as mock_readchar:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
+            with patch('agentao.cli.readchar') as mock_readchar:
                 mock_agent = Mock()
                 mock_agent_class.return_value = mock_agent
 
-                from chatagent.cli import ChatAgentCLI
+                from agentao.cli import AgentaoCLI
 
-                cli = ChatAgentCLI()
+                cli = AgentaoCLI()
                 cli.current_status = None  # No active status
 
                 mock_readchar.readkey.return_value = "1"

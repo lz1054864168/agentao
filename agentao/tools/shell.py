@@ -1,6 +1,7 @@
 """Shell command execution tool."""
 
 import os
+import re
 import signal
 import subprocess
 import threading
@@ -38,6 +39,37 @@ def _truncate_tail(text: str, max_chars: int) -> str:
         return text
     omitted = len(text) - max_chars
     return f"[... {omitted:,} chars omitted (showing last {max_chars:,}) ...]\n" + text[-max_chars:]
+
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences (colors, cursor codes) from text."""
+    return _ANSI_ESCAPE_RE.sub("", text)
+
+
+def _collapse_carriage_returns(text: str) -> str:
+    """Simulate terminal \\r behavior: collapse progress-bar overwrite sequences.
+
+    Progress bars use \\r to stay on one line. This collapses each line to
+    only what would be visible after all carriage-returns are applied.
+    """
+    if not text:
+        return text
+    # Normalise \\r\\n -> \\n first so we don't treat it as an in-line \\r
+    text = text.replace("\r\n", "\n")
+    lines = text.split("\n")
+    collapsed = []
+    for line in lines:
+        if "\r" in line:
+            segment = line.split("\r")[-1]
+            if segment:
+                collapsed.append(segment)
+            # else: line was entirely overwritten by \\r, drop it
+        else:
+            collapsed.append(line)
+    return "\n".join(collapsed)
 
 
 class ShellTool(Tool):
@@ -255,6 +287,12 @@ class ShellTool(Tool):
     ) -> str:
         stdout_str = _decode(stdout_raw)
         stderr_str = _decode(stderr_raw)
+
+        # Clean up carriage-return sequences and ANSI codes before sending to LLM.
+        # Progress bars use \r to overwrite lines in a terminal; without this,
+        # the LLM receives all intermediate states as separate lines of noise.
+        stdout_str = _strip_ansi(_collapse_carriage_returns(stdout_str))
+        stderr_str = _strip_ansi(_collapse_carriage_returns(stderr_str))
 
         # Truncate: keep tail of each stream proportionally
         total = len(stdout_str) + len(stderr_str)

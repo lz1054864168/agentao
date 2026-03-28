@@ -1,7 +1,7 @@
 # Project Structure
 
 ```
-chatagent/
+agentao/
 │
 ├── 📄 Configuration Files
 │   ├── .env.example              # Environment configuration template
@@ -22,7 +22,7 @@ chatagent/
 ├── 🧪 Testing
 │   └── test_imports.py           # Import verification test
 │
-└── 📦 chatagent/ (Main Package)
+└── 📦 agentao/ (Main Package)
     │
     ├── __init__.py               # Package initialization
     │
@@ -54,7 +54,7 @@ chatagent/
 
 Generated Files (gitignored):
 ├── .venv/                        # Virtual environment (created by uv)
-└── .chatagent_memory.json        # Memory storage (created at runtime)
+└── .agentao_memory.json        # Memory storage (created at runtime)
 ```
 
 ## Module Descriptions
@@ -124,7 +124,7 @@ main.py
 ```
 User Input (CLI)
     ↓
-ChatAgent.chat()
+Agentao.chat()
     ↓
 LLMClient.chat() + tools
     ↓

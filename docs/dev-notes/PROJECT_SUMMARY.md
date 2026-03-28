@@ -1,8 +1,8 @@
-# ChatAgent - Project Summary
+# Agentao - Project Summary
 
 ## Overview
 
-ChatAgent is a feature-complete CLI chat agent built with Python that supports:
+Agentao is a feature-complete CLI chat agent built with Python that supports:
 - OpenAI-compatible API integration
 - 13 built-in tools for various tasks
 - Claude Skills system integration
@@ -14,7 +14,7 @@ ChatAgent is a feature-complete CLI chat agent built with Python that supports:
 ### Core Components
 
 ```
-chatagent/
+agentao/
 ├── cli.py                  # Rich-based CLI interface
 ├── agent.py                # Main agent orchestration
 ├── llm/
@@ -83,7 +83,7 @@ Based on Claude Code's skill system:
 
 ## Memory System
 
-- **Persistent storage**: JSON file (`.chatagent_memory.json`)
+- **Persistent storage**: JSON file (`.agentao_memory.json`)
 - **Key-value pairs**: Organized by key and tags
 - **Searchable**: Find memories by key or tag
 - **Timestamped**: Track when information was saved
@@ -139,7 +139,7 @@ uv sync
 
 # Run the agent
 uv run python main.py
-uv run chatagent
+uv run agentao
 ./run.sh
 
 # Add new dependency
@@ -158,7 +158,7 @@ The project includes:
 ## File Structure
 
 ```
-chatagent/
+agentao/
 ├── .env.example           # Configuration template
 ├── .gitignore            # Git ignore rules
 ├── .python-version       # Python version (3.12)
@@ -169,7 +169,7 @@ chatagent/
 ├── QUICKSTART.md         # Quick start guide
 ├── PROJECT_SUMMARY.md    # This file
 ├── test_imports.py       # Import verification
-└── chatagent/            # Main package
+└── agentao/            # Main package
     ├── __init__.py
     ├── cli.py
     ├── agent.py

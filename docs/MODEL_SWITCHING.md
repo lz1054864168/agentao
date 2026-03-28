@@ -2,7 +2,7 @@
 
 ## Overview
 
-ChatAgent supports switching between different LLM models during a conversation using the `/model` command.
+Agentao supports switching between different LLM models during a conversation using the `/model` command.
 
 ## Usage
 
@@ -152,9 +152,9 @@ The model setting persists throughout your session:
 
 ### Logging
 
-All model switches are logged to `chatagent.log`:
+All model switches are logged to `agentao.log`:
 ```
-2026-02-09 14:30:45 - chatagent.llm - INFO - Model changed from claude-sonnet-4-5 to gpt-4
+2026-02-09 14:30:45 - agentao.llm - INFO - Model changed from claude-sonnet-4-5 to gpt-4
 ```
 
 ### Context Preservation
@@ -178,9 +178,9 @@ OPENAI_MODEL=claude-sonnet-4-5
 Or when initializing:
 
 ```python
-from chatagent import ChatAgent
+from agentao import Agentao
 
-agent = ChatAgent(model="gpt-4")
+agent = Agentao(model="gpt-4")
 ```
 
 ### API Configuration
@@ -318,9 +318,9 @@ This is useful for:
 ### Programmatic Access
 
 ```python
-from chatagent import ChatAgent
+from agentao import Agentao
 
-agent = ChatAgent()
+agent = Agentao()
 
 # Get current model
 current = agent.get_current_model()

@@ -1,4 +1,4 @@
-"""MCP tool wrapper that adapts MCP-discovered tools to the ChatAgent Tool interface."""
+"""MCP tool wrapper that adapts MCP-discovered tools to the Agentao Tool interface."""
 
 import re
 from typing import Any, Dict
@@ -37,7 +37,7 @@ def parse_mcp_tool_name(fqn: str) -> tuple:
 
 
 class McpTool(Tool):
-    """Wraps an MCP-discovered tool as a ChatAgent Tool."""
+    """Wraps an MCP-discovered tool as a Agentao Tool."""
 
     def __init__(
         self,

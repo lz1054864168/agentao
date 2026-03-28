@@ -24,7 +24,7 @@ LLM 的执行流程：
 
 ## 解决方案
 
-修改 `ChatAgent.chat()` 方法，添加循环处理多轮工具调用：
+修改 `Agentao.chat()` 方法，添加循环处理多轮工具调用：
 
 ```python
 def chat(self, user_message: str, max_iterations: int = 10) -> str:
@@ -95,8 +95,8 @@ INFO - Reached final response in iteration 4
 
 ## 影响范围
 
-- **文件**：`chatagent/agent.py`
-- **方法**：`ChatAgent.chat()`
+- **文件**：`agentao/agent.py`
+- **方法**：`Agentao.chat()`
 - **向后兼容**：完全兼容，只是添加了可选的 `max_iterations` 参数
 - **性能影响**：无负面影响，只有在需要多轮工具调用时才会多次调用 LLM
 

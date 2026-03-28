@@ -1,4 +1,4 @@
 #!/bin/bash
-# Quick start script for ChatAgent using uv
+# Quick start script for Agentao using uv
 
 uv run python main.py

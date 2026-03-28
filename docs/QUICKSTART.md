@@ -1,6 +1,6 @@
-# ChatAgent - Quick Start Guide
+# Agentao - Quick Start Guide
 
-Get up and running with ChatAgent in under 2 minutes!
+Get up and running with Agentao in under 2 minutes!
 
 ## 1. Setup Environment
 
@@ -23,7 +23,7 @@ uv sync
 
 That's it! No need to manually create virtual environments or install packages one by one.
 
-## 3. Run ChatAgent
+## 3. Run Agentao
 
 ```bash
 # Method 1: Direct run with uv
@@ -33,7 +33,7 @@ uv run python main.py
 ./run.sh
 
 # Method 3: Use the installed command
-uv run chatagent
+uv run agentao
 ```
 
 ## 4. Try It Out!
@@ -152,4 +152,4 @@ You: Use the codebase investigator to analyze the project structure
 - Try activating different skills with the `skills` command
 - Save your preferences with the `save_memory` tool
 
-Enjoy using ChatAgent! 🚀
+Enjoy using Agentao! 🚀

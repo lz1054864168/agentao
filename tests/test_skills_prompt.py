@@ -2,13 +2,13 @@
 
 import os
 from dotenv import load_dotenv
-from chatagent import ChatAgent
+from agentao import Agentao
 
 def test_skills_in_system_prompt():
     """Test that available skills are listed in the system prompt."""
     load_dotenv()
 
-    agent = ChatAgent(
+    agent = Agentao(
         api_key=os.getenv("OPENAI_API_KEY"),
         base_url=os.getenv("OPENAI_BASE_URL"),
         model=os.getenv("OPENAI_MODEL"),

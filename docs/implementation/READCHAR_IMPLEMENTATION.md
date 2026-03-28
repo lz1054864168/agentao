@@ -46,7 +46,7 @@ uv add readchar
 
 ### 2. 修改代码
 
-**chatagent/cli.py**:
+**agentao/cli.py**:
 
 ```python
 import readchar

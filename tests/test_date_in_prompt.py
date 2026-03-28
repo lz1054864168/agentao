@@ -8,15 +8,15 @@ def test_date_in_system_prompt():
     """Test that system prompt includes current date information."""
 
     # Mock the LLMClient
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
         # Create agent
-        agent = ChatAgent()
+        agent = Agentao()
 
         # Get system prompt
         system_prompt = agent._build_system_prompt()
@@ -46,14 +46,14 @@ def test_date_in_system_prompt():
 def test_date_format():
     """Test that date is formatted correctly."""
 
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
-        agent = ChatAgent()
+        agent = Agentao()
         system_prompt = agent._build_system_prompt()
 
         # Check date format: YYYY-MM-DD HH:MM:SS
@@ -67,15 +67,15 @@ def test_date_format():
 def test_date_with_project_instructions():
     """Test that date is included even with project instructions."""
 
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_logger = Mock()
         mock_llm_client.return_value.logger = mock_logger
         mock_llm_client.return_value.model = "gpt-4"
 
-        from chatagent.agent import ChatAgent
+        from agentao.agent import Agentao
 
         # Create agent (should load CHATAGENT.md if it exists)
-        agent = ChatAgent()
+        agent = Agentao()
 
         # Get system prompt
         system_prompt = agent._build_system_prompt()

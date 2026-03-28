@@ -62,13 +62,13 @@ messages_with_system = [
 
 ### 3. 导出必要的类
 
-修改 `chatagent/__init__.py` 以便测试和外部使用：
+修改 `agentao/__init__.py` 以便测试和外部使用：
 
 ```python
-from .agent import ChatAgent
+from .agent import Agentao
 from .skills import SkillManager
 
-__all__ = ["ChatAgent", "SkillManager"]
+__all__ = ["Agentao", "SkillManager"]
 ```
 
 ## 测试验证
@@ -126,13 +126,13 @@ pdf - PDF Processing Guide:
 
 ### 修改的文件
 
-1. **chatagent/agent.py**
+1. **agentao/agent.py**
    - 修改 `_build_system_prompt()` - 添加 skills 列表
    - 修改 `__init__()` - 移除 `self.system_prompt` 缓存
    - 修改 `chat()` - 动态构建系统提示词
 
-2. **chatagent/__init__.py**
-   - 添加 `ChatAgent` 和 `SkillManager` 导出
+2. **agentao/__init__.py**
+   - 添加 `Agentao` 和 `SkillManager` 导出
 
 3. **test_skills_prompt.py** (新增)
    - 验证 skills 在系统提示词中

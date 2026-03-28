@@ -17,12 +17,12 @@ class AgentManager:
         self._load_definitions()
 
     def _load_definitions(self):
-        # 1. Built-in definitions: chatagent/agents/definitions/*.md
+        # 1. Built-in definitions: agentao/agents/definitions/*.md
         builtin_dir = Path(__file__).parent / "definitions"
         self._scan_directory(builtin_dir)
 
-        # 2. User-defined: .chatagent/agents/*.md (project-level)
-        user_dir = Path.cwd() / ".chatagent" / "agents"
+        # 2. User-defined: .agentao/agents/*.md (project-level)
+        user_dir = Path.cwd() / ".agentao" / "agents"
         self._scan_directory(user_dir)
 
     def _scan_directory(self, directory: Path):
@@ -79,6 +79,10 @@ class AgentManager:
         llm_config: Dict[str, Any],
         confirmation_callback: Optional[Callable] = None,
         step_callback: Optional[Callable] = None,
+        output_callback: Optional[Callable] = None,
+        tool_complete_callback: Optional[Callable] = None,
+        ask_user_callback: Optional[Callable] = None,
+        max_context_tokens: Optional[int] = None,
     ) -> List[AgentToolWrapper]:
         """Create an AgentToolWrapper for each agent definition."""
         return [
@@ -88,6 +92,10 @@ class AgentManager:
                 llm_config=llm_config,
                 confirmation_callback=confirmation_callback,
                 step_callback=step_callback,
+                output_callback=output_callback,
+                tool_complete_callback=tool_complete_callback,
+                ask_user_callback=ask_user_callback,
+                max_context_tokens=max_context_tokens,
             )
             for defn in self.definitions.values()
         ]

@@ -6,15 +6,15 @@ from unittest.mock import Mock, patch
 def test_clear_resets_confirmation():
     """Test that clear command resets allow_all_tools to False."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             # Mock the agent instance
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
-            cli = ChatAgentCLI()
+            cli = AgentaoCLI()
 
             # Enable allow_all mode
             cli.allow_all_tools = True
@@ -32,14 +32,14 @@ def test_clear_resets_confirmation():
 def test_clear_command_flow():
     """Test the full flow of clear command with confirmation reset."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
-            cli = ChatAgentCLI()
+            cli = AgentaoCLI()
 
             # Simulate workflow:
             # 1. User enables allow_all
@@ -58,15 +58,15 @@ def test_clear_command_flow():
 def test_clear_vs_reset_confirm():
     """Test that both /clear and /reset-confirm reset confirmation."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
             # Test /clear
-            cli1 = ChatAgentCLI()
+            cli1 = AgentaoCLI()
             cli1.allow_all_tools = True
             cli1.agent.clear_history()
             cli1.allow_all_tools = False  # clear does this
@@ -74,7 +74,7 @@ def test_clear_vs_reset_confirm():
             print("✅ /clear resets confirmation")
 
             # Test /reset-confirm
-            cli2 = ChatAgentCLI()
+            cli2 = AgentaoCLI()
             cli2.allow_all_tools = True
             cli2.allow_all_tools = False  # reset-confirm does this
             assert cli2.allow_all_tools is False
@@ -86,14 +86,14 @@ def test_clear_vs_reset_confirm():
 def test_initial_state():
     """Test that CLI starts with allow_all_tools = False."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
-            cli = ChatAgentCLI()
+            cli = AgentaoCLI()
 
             assert cli.allow_all_tools is False, "Should start as False"
             print("✅ Initial state is correct (allow_all_tools = False)")
@@ -102,14 +102,14 @@ def test_initial_state():
 def test_clear_makes_sense():
     """Test the logical flow: clear should reset everything to initial state."""
 
-    with patch('chatagent.cli.load_dotenv'):
-        with patch('chatagent.cli.ChatAgent') as mock_agent_class:
+    with patch('agentao.cli.load_dotenv'):
+        with patch('agentao.cli.Agentao') as mock_agent_class:
             mock_agent = Mock()
             mock_agent_class.return_value = mock_agent
 
-            from chatagent.cli import ChatAgentCLI
+            from agentao.cli import AgentaoCLI
 
-            cli = ChatAgentCLI()
+            cli = AgentaoCLI()
 
             # Initial state
             initial_allow_all = cli.allow_all_tools

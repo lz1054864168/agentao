@@ -1,7 +1,7 @@
 """Test script to verify skills loading from SKILL.md files."""
 
 from pathlib import Path
-from chatagent.skills import SkillManager
+from agentao.skills import SkillManager
 
 print("=" * 70)
 print("Testing Skills Loading from SKILL.md Files")

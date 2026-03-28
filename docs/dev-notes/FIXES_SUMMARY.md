@@ -1,8 +1,8 @@
-# ChatAgent 修复总结
+# Agentao 修复总结
 
 ## 概述
 
-本次修复解决了两个关键问题，使 ChatAgent 能够正确处理复杂的多步骤任务。
+本次修复解决了两个关键问题，使 Agentao 能够正确处理复杂的多步骤任务。
 
 ## 问题 1：程序无法完成多轮工具调用的任务
 
@@ -46,7 +46,7 @@ while iteration < max_iterations:
 
 ### 修改的文件
 
-- `chatagent/agent.py` - `chat()` 方法
+- `agentao/agent.py` - `chat()` 方法
 
 ### 关键改进
 
@@ -103,13 +103,13 @@ system_prompt = self._build_system_prompt()
 
 ### 修改的文件
 
-1. `chatagent/agent.py`
+1. `agentao/agent.py`
    - 修改 `_build_system_prompt()` - 添加 skills 列表
    - 修改 `__init__()` - 移除静态缓存
    - 修改 `chat()` - 动态构建提示词
 
-2. `chatagent/__init__.py`
-   - 添加 `ChatAgent` 和 `SkillManager` 导出
+2. `agentao/__init__.py`
+   - 添加 `Agentao` 和 `SkillManager` 导出
 
 ### 关键改进
 
@@ -161,10 +161,10 @@ uv run python test_skills_prompt.py
 
 | 文件 | 修改内容 | 影响 |
 |------|---------|------|
-| `chatagent/agent.py` | 添加多轮工具调用循环 | 修复任务中断问题 |
-| `chatagent/agent.py` | 改进系统提示词构建 | 添加 skills 支持 |
-| `chatagent/agent.py` | 动态构建系统提示词 | 实时更新 |
-| `chatagent/__init__.py` | 添加导出 | 便于测试 |
+| `agentao/agent.py` | 添加多轮工具调用循环 | 修复任务中断问题 |
+| `agentao/agent.py` | 改进系统提示词构建 | 添加 skills 支持 |
+| `agentao/agent.py` | 动态构建系统提示词 | 实时更新 |
+| `agentao/__init__.py` | 添加导出 | 便于测试 |
 
 ### 新增文件
 
@@ -286,7 +286,7 @@ uv run python test_skills_prompt.py
 1. ✅ **多轮工具调用**：程序现在可以处理需要多个步骤的复杂任务
 2. ✅ **Skills 集成**：LLM 现在知道有哪些 skills 可用以及何时使用它们
 
-这两个修复共同作用，使 ChatAgent 能够：
+这两个修复共同作用，使 Agentao 能够：
 - 自动识别任务类型
 - 激活相关 skill
 - 执行多步骤操作

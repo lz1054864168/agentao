@@ -1,10 +1,15 @@
 """Skills manager for handling Claude skills."""
 
+import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 import yaml
+
+# Config file for persisting disabled skills
+_CONFIG_DIR = Path.cwd() / ".agentao"
+_CONFIG_FILE = _CONFIG_DIR / "skills_config.json"
 
 
 class SkillManager:
@@ -20,6 +25,7 @@ class SkillManager:
         """
         self.active_skills: Dict[str, dict] = {}
         self.available_skills: Dict[str, dict] = {}
+        self.disabled_skills: Set[str] = set()
 
         # Determine skills directory
         if skills_dir is None:
@@ -27,16 +33,62 @@ class SkillManager:
             # This allows finding skills relative to where the program runs
             skills_dir = Path.cwd() / "skills"
 
-            # If that doesn't exist, try relative to the chatagent package
+            # If that doesn't exist, try relative to the agentao package
             if not skills_dir.exists():
-                # Look for skills at project root (parent of chatagent package)
+                # Look for skills at project root (parent of agentao package)
                 project_root = Path(__file__).parent.parent.parent
                 skills_dir = project_root / "skills"
         else:
             skills_dir = Path(skills_dir)
 
         self.skills_dir = Path(skills_dir)
+        self._load_config()
         self._load_skills()
+
+    def _load_config(self):
+        """Load disabled skills list from config file."""
+        if _CONFIG_FILE.exists():
+            try:
+                with open(_CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+                self.disabled_skills = set(config.get("disabled_skills", []))
+            except (IOError, json.JSONDecodeError):
+                self.disabled_skills = set()
+
+    def _save_config(self):
+        """Save disabled skills list to config file."""
+        _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        config = {"disabled_skills": sorted(self.disabled_skills)}
+        with open(_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+
+    def disable_skill(self, skill_name: str) -> str:
+        """Disable a skill, hiding it from the available list.
+
+        If the skill is currently active, it will be deactivated first.
+        """
+        if skill_name not in self.available_skills:
+            available = ", ".join(sorted(self.available_skills.keys()))
+            return f"Error: Unknown skill '{skill_name}'. Known skills: {available}"
+        if skill_name in self.disabled_skills:
+            return f"Skill '{skill_name}' is already disabled."
+        self.disabled_skills.add(skill_name)
+        # Deactivate if currently active
+        if skill_name in self.active_skills:
+            self.deactivate_skill(skill_name)
+        self._save_config()
+        return f"Skill '{skill_name}' has been disabled."
+
+    def enable_skill(self, skill_name: str) -> str:
+        """Re-enable a previously disabled skill."""
+        if skill_name not in self.disabled_skills:
+            if skill_name in self.available_skills:
+                return f"Skill '{skill_name}' is not disabled."
+            available = ", ".join(sorted(self.available_skills.keys()))
+            return f"Error: Unknown skill '{skill_name}'. Known skills: {available}"
+        self.disabled_skills.discard(skill_name)
+        self._save_config()
+        return f"Skill '{skill_name}' has been re-enabled."
 
     def _parse_yaml_frontmatter(self, content: str) -> tuple[Dict[str, str], str]:
         """Parse YAML frontmatter from markdown file.
@@ -117,10 +169,18 @@ class SkillManager:
                 continue
 
     def list_available_skills(self) -> List[str]:
-        """List all available skills.
+        """List available (non-disabled) skills.
 
         Returns:
-            List of skill names
+            List of skill names excluding disabled ones
+        """
+        return [name for name in self.available_skills if name not in self.disabled_skills]
+
+    def list_all_skills(self) -> List[str]:
+        """List all discovered skills including disabled ones.
+
+        Returns:
+            List of all skill names
         """
         return list(self.available_skills.keys())
 
@@ -258,6 +318,9 @@ class SkillManager:
     def get_skills_context(self) -> str:
         """Get context about active skills for the LLM.
 
+        Injects full SKILL.md content and directory structure for each active skill,
+        similar to Gemini CLI's activate_skill behavior.
+
         Returns:
             Formatted context string
         """
@@ -267,10 +330,22 @@ class SkillManager:
         context = "\n=== Active Skills ===\n"
         for name, info in self.active_skills.items():
             skill_info = info['skill_info']
-            context += f"\n{name} - {skill_info.get('title', name)}:\n"
-            context += f"  Description: {skill_info.get('description', 'N/A')[:150]}...\n"
-            context += f"  Task: {info['task']}\n"
-            context += f"  Documentation: {skill_info.get('path', 'N/A')}\n"
+            context += f"\n## {name} - {skill_info.get('title', name)}\n"
+            context += f"Task: {info['task']}\n"
+
+            # Inject full SKILL.md content (replaces 150-char truncated description)
+            skill_content = self.get_skill_content(name)
+            if skill_content:
+                context += f"\n{skill_content}\n"
+
+            # List directory structure (references and assets available for on-demand loading)
+            resources = self._list_skill_resources(name)
+            if resources["references"] or resources["assets"]:
+                context += "\nAvailable resource files (use read_file to load):\n"
+                for ref in sorted(resources.get("references", [])):
+                    context += f"  - {ref}\n"
+                for asset in sorted(resources.get("assets", [])):
+                    context += f"  - {asset}\n"
 
         return context
 
@@ -278,9 +353,13 @@ class SkillManager:
         """Reload skill definitions from disk.
 
         Useful for adding new skills without restarting the application.
+        Disabled state is preserved across reloads.
         """
         self.available_skills.clear()
         self._load_skills()
+        # Clean up disabled entries for skills that no longer exist on disk
+        self.disabled_skills &= set(self.available_skills.keys())
+        self._save_config()
 
     def get_skill_content(self, skill_name: str) -> Optional[str]:
         """Get full content of a skill's SKILL.md file.

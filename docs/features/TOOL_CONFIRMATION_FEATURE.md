@@ -2,29 +2,29 @@
 
 ## 概述
 
-为 ChatAgent 添加了工具确认功能，在执行 Shell 和 Web 工具前需要用户明确确认，提高安全性。
+为 Agentao 添加了工具确认功能，在执行 Shell 和 Web 工具前需要用户明确确认，提高安全性。
 
 ## 改动内容
 
 ### 修改的文件
 
-1. **chatagent/tools/base.py**
+1. **agentao/tools/base.py**
    - 在 `Tool` 基类添加 `requires_confirmation` 属性（默认 False）
 
-2. **chatagent/tools/shell.py**
+2. **agentao/tools/shell.py**
    - `ShellTool` 设置 `requires_confirmation = True`
 
-3. **chatagent/tools/web.py**
+3. **agentao/tools/web.py**
    - `WebFetchTool` 设置 `requires_confirmation = True`
    - `GoogleSearchTool` 设置 `requires_confirmation = True`
 
-4. **chatagent/agent.py**
+4. **agentao/agent.py**
    - 添加 `confirmation_callback` 参数
    - 在工具执行前检查 `requires_confirmation`
    - 如需确认则调用回调函数
    - 记录确认结果到日志
 
-5. **chatagent/cli.py**
+5. **agentao/cli.py**
    - 添加 `confirm_tool_execution()` 方法
    - 使用 rich.Confirm 显示确认提示
    - 将确认回调传递给 agent

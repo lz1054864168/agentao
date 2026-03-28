@@ -3,13 +3,13 @@
 print("Testing imports...")
 
 try:
-    from chatagent.llm import LLMClient
+    from agentao.llm import LLMClient
     print("✓ LLM client import successful")
 except Exception as e:
     print(f"✗ LLM client import failed: {e}")
 
 try:
-    from chatagent.tools import (
+    from agentao.tools import (
         ToolRegistry,
         ReadFileTool,
         WriteFileTool,
@@ -30,25 +30,25 @@ except Exception as e:
     print(f"✗ Tools import failed: {e}")
 
 try:
-    from chatagent.skills import SkillManager
+    from agentao.skills import SkillManager
     print("✓ Skill manager import successful")
 except Exception as e:
     print(f"✗ Skill manager import failed: {e}")
 
 try:
-    from chatagent.agent import ChatAgent
+    from agentao.agent import Agentao
     print("✓ Chat agent import successful")
 except Exception as e:
     print(f"✗ Chat agent import failed: {e}")
 
 try:
-    from chatagent.cli import ChatAgentCLI
+    from agentao.cli import AgentaoCLI
     print("✓ CLI import successful")
 except Exception as e:
     print(f"✗ CLI import failed: {e}")
 
 print("\n✓ All imports successful! The project is ready to run.")
-print("\nTo start ChatAgent, run:")
+print("\nTo start Agentao, run:")
 print("  uv run python main.py")
 print("or")
 print("  ./run.sh")

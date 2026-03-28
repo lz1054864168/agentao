@@ -1,12 +1,12 @@
-# ChatAgent Logging System
+# Agentao Logging System
 
 ## Overview
 
-ChatAgent 自动记录所有与 LLM 的交互到日志文件，包括完整的请求和响应内容。
+Agentao 自动记录所有与 LLM 的交互到日志文件，包括完整的请求和响应内容。
 
 ## 日志文件
 
-**默认位置**: `chatagent.log`（在运行目录）
+**默认位置**: `agentao.log`（在运行目录）
 
 ## 记录内容
 
@@ -26,7 +26,7 @@ Messages (N total):
 
   Message 1 [system]:
     Content (XXX chars):
-      You are ChatAgent, a helpful AI assistant...
+      You are Agentao, a helpful AI assistant...
       (完整的系统提示)
 
   Message 2 [user]:
@@ -137,34 +137,34 @@ Tool Calls (N):
 日志功能默认开启，无需配置：
 
 ```bash
-# 启动 ChatAgent
+# 启动 Agentao
 uv run python main.py
 
-# 所有交互会自动记录到 chatagent.log
+# 所有交互会自动记录到 agentao.log
 ```
 
 ### 查看日志
 
 **实时查看**：
 ```bash
-tail -f chatagent.log
+tail -f agentao.log
 ```
 
 **查看完整日志**：
 ```bash
-cat chatagent.log
+cat agentao.log
 ```
 
 **搜索特定内容**：
 ```bash
-grep "read_file" chatagent.log
-grep "ERROR" chatagent.log
-grep "req_5" chatagent.log  # 查看特定请求
+grep "read_file" agentao.log
+grep "ERROR" agentao.log
+grep "req_5" agentao.log  # 查看特定请求
 ```
 
 **查看最近 N 行**：
 ```bash
-tail -n 100 chatagent.log
+tail -n 100 agentao.log
 ```
 
 ### 自定义日志位置
@@ -172,7 +172,7 @@ tail -n 100 chatagent.log
 在代码中可以指定日志文件位置：
 
 ```python
-from chatagent.llm import LLMClient
+from agentao.llm import LLMClient
 
 client = LLMClient(
     api_key="your-key",
@@ -186,12 +186,12 @@ client = LLMClient(
 ### 时间戳格式
 
 ```
-2026-02-09 14:30:45 - chatagent.llm - INFO - [req_1] LLM REQUEST
+2026-02-09 14:30:45 - agentao.llm - INFO - [req_1] LLM REQUEST
 ```
 
 格式说明：
 - `2026-02-09 14:30:45` - 时间戳
-- `chatagent.llm` - 日志来源
+- `agentao.llm` - 日志来源
 - `INFO` - 日志级别
 - `[req_1]` - 请求 ID
 - `LLM REQUEST` - 日志内容
@@ -233,20 +233,20 @@ client = LLMClient(
 
 ```bash
 # 清空但保留文件
-> chatagent.log
+> agentao.log
 
 # 或删除文件
-rm chatagent.log
+rm agentao.log
 ```
 
 ### 归档日志
 
 ```bash
 # 按日期归档
-mv chatagent.log chatagent_$(date +%Y%m%d).log
+mv agentao.log agentao_$(date +%Y%m%d).log
 
 # 压缩归档
-gzip chatagent_$(date +%Y%m%d).log
+gzip agentao_$(date +%Y%m%d).log
 ```
 
 ### 日志轮转
@@ -254,8 +254,8 @@ gzip chatagent_$(date +%Y%m%d).log
 创建 logrotate 配置（Linux/macOS）：
 
 ```bash
-# /etc/logrotate.d/chatagent 或 ~/.logrotate.d/chatagent
-/path/to/chatagent.log {
+# /etc/logrotate.d/agentao 或 ~/.logrotate.d/agentao
+/path/to/agentao.log {
     daily
     rotate 7
     compress
@@ -269,51 +269,51 @@ gzip chatagent_$(date +%Y%m%d).log
 ### 完整对话示例
 
 ```
-2026-02-09 14:30:45 - chatagent.llm - INFO - LLMClient initialized with model: claude-sonnet-4-5
-2026-02-09 14:30:50 - chatagent.llm - INFO - ================================================================================
-2026-02-09 14:30:50 - chatagent.llm - INFO - [req_1] LLM REQUEST
-2026-02-09 14:30:50 - chatagent.llm - INFO - ================================================================================
-2026-02-09 14:30:50 - chatagent.llm - INFO - Model: claude-sonnet-4-5
-2026-02-09 14:30:50 - chatagent.llm - INFO - Temperature: 0.7
-2026-02-09 14:30:50 - chatagent.llm - INFO -
+2026-02-09 14:30:45 - agentao.llm - INFO - LLMClient initialized with model: claude-sonnet-4-5
+2026-02-09 14:30:50 - agentao.llm - INFO - ================================================================================
+2026-02-09 14:30:50 - agentao.llm - INFO - [req_1] LLM REQUEST
+2026-02-09 14:30:50 - agentao.llm - INFO - ================================================================================
+2026-02-09 14:30:50 - agentao.llm - INFO - Model: claude-sonnet-4-5
+2026-02-09 14:30:50 - agentao.llm - INFO - Temperature: 0.7
+2026-02-09 14:30:50 - agentao.llm - INFO -
 Messages (2 total):
-2026-02-09 14:30:50 - chatagent.llm - INFO -
+2026-02-09 14:30:50 - agentao.llm - INFO -
   Message 1 [system]:
-2026-02-09 14:30:50 - chatagent.llm - INFO -     Content (245 chars):
-2026-02-09 14:30:50 - chatagent.llm - INFO -       You are ChatAgent, a helpful AI assistant with access to various tools and skills.
-2026-02-09 14:30:50 - chatagent.llm - INFO -
-2026-02-09 14:30:50 - chatagent.llm - INFO -       You can help users with:
-2026-02-09 14:30:50 - chatagent.llm - INFO -       - Reading, writing, and editing files
-2026-02-09 14:30:50 - chatagent.llm - INFO -       - Searching for files and text content
-2026-02-09 14:30:50 - chatagent.llm - INFO -       ...
-2026-02-09 14:30:50 - chatagent.llm - INFO -
+2026-02-09 14:30:50 - agentao.llm - INFO -     Content (245 chars):
+2026-02-09 14:30:50 - agentao.llm - INFO -       You are Agentao, a helpful AI assistant with access to various tools and skills.
+2026-02-09 14:30:50 - agentao.llm - INFO -
+2026-02-09 14:30:50 - agentao.llm - INFO -       You can help users with:
+2026-02-09 14:30:50 - agentao.llm - INFO -       - Reading, writing, and editing files
+2026-02-09 14:30:50 - agentao.llm - INFO -       - Searching for files and text content
+2026-02-09 14:30:50 - agentao.llm - INFO -       ...
+2026-02-09 14:30:50 - agentao.llm - INFO -
   Message 2 [user]:
-2026-02-09 14:30:50 - chatagent.llm - INFO -     Content (25 chars):
-2026-02-09 14:30:50 - chatagent.llm - INFO -       Read the file main.py
-2026-02-09 14:30:50 - chatagent.llm - INFO -
+2026-02-09 14:30:50 - agentao.llm - INFO -     Content (25 chars):
+2026-02-09 14:30:50 - agentao.llm - INFO -       Read the file main.py
+2026-02-09 14:30:50 - agentao.llm - INFO -
 Tools (13 available):
-2026-02-09 14:30:50 - chatagent.llm - INFO -   - read_file
-2026-02-09 14:30:50 - chatagent.llm - INFO -   - write_file
-2026-02-09 14:30:50 - chatagent.llm - INFO -   ...
-2026-02-09 14:30:52 - chatagent.llm - INFO - ================================================================================
-2026-02-09 14:30:52 - chatagent.llm - INFO - [req_1] LLM RESPONSE
-2026-02-09 14:30:52 - chatagent.llm - INFO - ================================================================================
-2026-02-09 14:30:52 - chatagent.llm - INFO - Model: claude-sonnet-4-5
-2026-02-09 14:30:52 - chatagent.llm - INFO - Finish Reason: tool_calls
-2026-02-09 14:30:52 - chatagent.llm - INFO -
+2026-02-09 14:30:50 - agentao.llm - INFO -   - read_file
+2026-02-09 14:30:50 - agentao.llm - INFO -   - write_file
+2026-02-09 14:30:50 - agentao.llm - INFO -   ...
+2026-02-09 14:30:52 - agentao.llm - INFO - ================================================================================
+2026-02-09 14:30:52 - agentao.llm - INFO - [req_1] LLM RESPONSE
+2026-02-09 14:30:52 - agentao.llm - INFO - ================================================================================
+2026-02-09 14:30:52 - agentao.llm - INFO - Model: claude-sonnet-4-5
+2026-02-09 14:30:52 - agentao.llm - INFO - Finish Reason: tool_calls
+2026-02-09 14:30:52 - agentao.llm - INFO -
 Token Usage:
-2026-02-09 14:30:52 - chatagent.llm - INFO -   Prompt Tokens: 1234
-2026-02-09 14:30:52 - chatagent.llm - INFO -   Completion Tokens: 45
-2026-02-09 14:30:52 - chatagent.llm - INFO -   Total Tokens: 1279
-2026-02-09 14:30:52 - chatagent.llm - INFO -
+2026-02-09 14:30:52 - agentao.llm - INFO -   Prompt Tokens: 1234
+2026-02-09 14:30:52 - agentao.llm - INFO -   Completion Tokens: 45
+2026-02-09 14:30:52 - agentao.llm - INFO -   Total Tokens: 1279
+2026-02-09 14:30:52 - agentao.llm - INFO -
 Tool Calls (1):
-2026-02-09 14:30:52 - chatagent.llm - INFO -   Tool: read_file
-2026-02-09 14:30:52 - chatagent.llm - INFO -   ID: call_abc123
-2026-02-09 14:30:52 - chatagent.llm - INFO -   Arguments:
-2026-02-09 14:30:52 - chatagent.llm - INFO -     {
-2026-02-09 14:30:52 - chatagent.llm - INFO -       "file_path": "main.py"
-2026-02-09 14:30:52 - chatagent.llm - INFO -     }
-2026-02-09 14:30:52 - chatagent.llm - INFO - ================================================================================
+2026-02-09 14:30:52 - agentao.llm - INFO -   Tool: read_file
+2026-02-09 14:30:52 - agentao.llm - INFO -   ID: call_abc123
+2026-02-09 14:30:52 - agentao.llm - INFO -   Arguments:
+2026-02-09 14:30:52 - agentao.llm - INFO -     {
+2026-02-09 14:30:52 - agentao.llm - INFO -       "file_path": "main.py"
+2026-02-09 14:30:52 - agentao.llm - INFO -     }
+2026-02-09 14:30:52 - agentao.llm - INFO - ================================================================================
 ```
 
 ## 调试技巧
@@ -321,35 +321,35 @@ Tool Calls (1):
 ### 查找错误
 
 ```bash
-grep -n "ERROR" chatagent.log
+grep -n "ERROR" agentao.log
 ```
 
 ### 查看特定请求
 
 ```bash
-grep -A 50 "req_5" chatagent.log
+grep -A 50 "req_5" agentao.log
 ```
 
 ### 统计 Token 使用
 
 ```bash
-grep "Total Tokens" chatagent.log | awk '{sum += $NF} END {print "Total:", sum}'
+grep "Total Tokens" agentao.log | awk '{sum += $NF} END {print "Total:", sum}'
 ```
 
 ### 查看工具调用
 
 ```bash
-grep -B 2 -A 5 "Tool Calls" chatagent.log
+grep -B 2 -A 5 "Tool Calls" agentao.log
 ```
 
 ## 配置选项
 
-在初始化 `ChatAgent` 时，可以传递日志配置：
+在初始化 `Agentao` 时，可以传递日志配置：
 
 ```python
-from chatagent.agent import ChatAgent
+from agentao.agent import Agentao
 
-agent = ChatAgent(
+agent = Agentao(
     api_key="your-key",
     model="claude-sonnet-4-5",
     # log_file 会传递给 LLMClient
@@ -381,8 +381,8 @@ agent = ChatAgent(
 
 ```bash
 # 只保留最近 1000 行
-tail -n 1000 chatagent.log > chatagent_temp.log
-mv chatagent_temp.log chatagent.log
+tail -n 1000 agentao.log > agentao_temp.log
+mv agentao_temp.log agentao.log
 ```
 
 ## 最佳实践

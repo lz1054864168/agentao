@@ -2,11 +2,11 @@
 
 ## Overview
 
-ChatAgent dynamically loads skills from the `skills` directory. Each skill is defined in its own subdirectory with a `SKILL.md` file.
+Agentao dynamically loads skills from the `skills` directory. Each skill is defined in its own subdirectory with a `SKILL.md` file.
 
 ## How Skills Are Loaded
 
-1. **Skills Directory**: `/Users/bluerose/Documents/Data/ToDo/2024-AGI/src/chatagent/skills/`
+1. **Skills Directory**: `/Users/bluerose/Documents/Data/ToDo/2024-AGI/src/agentao/skills/`
 2. **Scan Subdirectories**: Each subdirectory represents one skill
 3. **Read SKILL.md**: Each subdirectory must contain a `SKILL.md` file
 4. **Parse Metadata**: Extract name and description from YAML frontmatter
@@ -94,7 +94,7 @@ Main documentation content goes here...
    This skill provides...
    ```
 
-4. Reload (restart ChatAgent or use reload feature)
+4. Reload (restart Agentao or use reload feature)
 
 ### Method 2: Copy from Template
 
@@ -107,7 +107,7 @@ Main documentation content goes here...
 
 3. Update the name and description in the frontmatter
 
-## Using Skills in ChatAgent
+## Using Skills in Agentao
 
 ### List Available Skills
 
@@ -206,7 +206,7 @@ Common issues and solutions...
 ### In Python Code
 
 ```python
-from chatagent.skills import SkillManager
+from agentao.skills import SkillManager
 
 # Initialize with default location
 manager = SkillManager()
@@ -265,7 +265,7 @@ This will:
 1. **Check directory structure**: Ensure `SKILL.md` exists
 2. **Verify frontmatter**: Check YAML syntax (name and description)
 3. **Check file encoding**: Use UTF-8 encoding
-4. **Restart ChatAgent**: Skills are loaded at startup
+4. **Restart Agentao**: Skills are loaded at startup
 
 ### Skill Not Activating
 
@@ -333,7 +333,7 @@ All commands start with `/`:
 
 ## API Integration
 
-Skills integrate with the ChatAgent through:
+Skills integrate with the Agentao through:
 
 1. **activate_skill tool**: LLM can call this tool
 2. **Skills context**: Active skills are added to system prompt

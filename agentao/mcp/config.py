@@ -66,7 +66,7 @@ def _load_json_file(path: Path) -> Dict[str, Any]:
 
 
 def load_mcp_config() -> Dict[str, McpServerConfig]:
-    """Load MCP server configs from global (~/.chatagent/mcp.json) and project (.chatagent/mcp.json).
+    """Load MCP server configs from global (~/.agentao/mcp.json) and project (.agentao/mcp.json).
 
     Project-level configs override global ones for the same server name.
     Environment variables in config values are expanded.
@@ -74,8 +74,8 @@ def load_mcp_config() -> Dict[str, McpServerConfig]:
     Returns:
         Dict mapping server name to its expanded config.
     """
-    global_path = Path.home() / ".chatagent" / "mcp.json"
-    project_path = Path.cwd() / ".chatagent" / "mcp.json"
+    global_path = Path.home() / ".agentao" / "mcp.json"
+    project_path = Path.cwd() / ".agentao" / "mcp.json"
 
     global_cfg = _load_json_file(global_path)
     project_cfg = _load_json_file(project_path)
@@ -96,15 +96,15 @@ def save_mcp_config(servers: Dict[str, McpServerConfig], *, global_config: bool 
 
     Args:
         servers: Server configs to save.
-        global_config: If True, save to ~/.chatagent/mcp.json; otherwise .chatagent/mcp.json.
+        global_config: If True, save to ~/.agentao/mcp.json; otherwise .agentao/mcp.json.
 
     Returns:
         Path to the saved config file.
     """
     if global_config:
-        config_dir = Path.home() / ".chatagent"
+        config_dir = Path.home() / ".agentao"
     else:
-        config_dir = Path.cwd() / ".chatagent"
+        config_dir = Path.cwd() / ".agentao"
 
     config_dir.mkdir(parents=True, exist_ok=True)
     config_path = config_dir / "mcp.json"

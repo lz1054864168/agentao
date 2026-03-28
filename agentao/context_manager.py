@@ -103,6 +103,12 @@ class ContextManager:
         if not to_summarize:
             return messages
 
+        # Extract [PIN] messages — they survive compression verbatim
+        pinned = [
+            m for m in to_summarize
+            if isinstance(m.get("content"), str) and m["content"].startswith("[PIN]")
+        ]
+
         summary = self._summarize_messages(to_summarize)
         if not summary:
             return messages
@@ -122,7 +128,13 @@ class ContextManager:
             "role": "system",
             "content": f"[Conversation Summary]\n{summary}",
         }
-        return [summary_msg] + to_keep
+        # Pinned messages are prepended after the summary so they are always in context
+        return [summary_msg] + pinned + to_keep
+
+    # Tool names whose results should be preserved at higher fidelity during summarization
+    _HIGH_FIDELITY_TOOLS = {"write_file", "replace", "edit_file"}
+    _TOOL_RESULT_TRUNCATION = 200       # default tool result chars in summary
+    _HIGH_FIDELITY_TRUNCATION = 1000    # write_file / replace tool results
 
     def _summarize_messages(self, messages: List[Dict[str, Any]]) -> str:
         """Call LLM (no tools) to summarize a list of messages.
@@ -134,19 +146,35 @@ class ContextManager:
             Summary text, or empty string on failure
         """
         try:
-            formatted = self._format_for_summary(messages)
+            # Filter out [PIN] messages from summarization — they are kept verbatim
+            to_summarize = [
+                m for m in messages
+                if not (
+                    isinstance(m.get("content"), str)
+                    and m["content"].startswith("[PIN]")
+                )
+            ]
+            formatted = self._format_for_summary(to_summarize)
             recall_messages = [
                 {
                     "role": "system",
                     "content": (
-                        "You are a summarization assistant. Summarize the key decisions, "
-                        "facts, and context from the conversation below. Be concise but complete. "
-                        "Focus on: user preferences, decisions made, important facts, project context."
+                        "You are a summarization assistant. Produce a structured summary of "
+                        "the conversation below with exactly three sections:\n\n"
+                        "## Decisions Made\n"
+                        "Bullet list of decisions, conclusions, and user preferences established.\n\n"
+                        "## Files Modified\n"
+                        "For each file that was created or edited: filename, and its final known state "
+                        "or the nature of the change. Include key code snippets when relevant.\n\n"
+                        "## Context for Continuation\n"
+                        "What the assistant was doing, current goals, and any open questions. "
+                        "Include enough detail so the assistant can resume the task seamlessly.\n\n"
+                        "Be concise within each section. Do not add any other sections."
                     ),
                 },
                 {
                     "role": "user",
-                    "content": f"Please summarize this conversation:\n\n{formatted}",
+                    "content": f"Summarize this conversation:\n\n{formatted}",
                 },
             ]
             response = self.llm_client.chat(messages=recall_messages, tools=None)
@@ -170,7 +198,13 @@ class ContextManager:
                     if isinstance(b, dict) and b.get("type") == "text"
                 )
             if role == "tool":
-                lines.append(f"[Tool Result - {msg.get('name', '')}]: {str(content)[:200]}")
+                tool_name = msg.get("name", "")
+                limit = (
+                    self._HIGH_FIDELITY_TRUNCATION
+                    if tool_name in self._HIGH_FIDELITY_TOOLS
+                    else self._TOOL_RESULT_TRUNCATION
+                )
+                lines.append(f"[Tool Result - {tool_name}]: {str(content)[:limit]}")
             elif content:
                 lines.append(f"[{role.upper()}]: {str(content)[:500]}")
         return "\n".join(lines)

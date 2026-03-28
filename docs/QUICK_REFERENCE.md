@@ -1,4 +1,4 @@
-# ChatAgent 修复快速参考
+# Agentao 修复快速参考
 
 ## 🎯 修复了什么
 
@@ -14,8 +14,8 @@
 
 | 文件 | 改动 |
 |------|------|
-| `chatagent/agent.py` | 添加多轮工具调用循环 + 动态系统提示词 |
-| `chatagent/__init__.py` | 添加导出 ChatAgent 和 SkillManager |
+| `agentao/agent.py` | 添加多轮工具调用循环 + 动态系统提示词 |
+| `agentao/__init__.py` | 添加导出 Agentao 和 SkillManager |
 
 ## 🧪 测试
 

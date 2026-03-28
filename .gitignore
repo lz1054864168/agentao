@@ -38,12 +38,19 @@ env/
 
 # ChatAgent specific
 .chatagent_memory.json
+.agentao_memory.json
 chatagent.log
 *.log
 .chatagent/
+.agentao/
 examples/
+workspace/
 skills/funds-data-cleaning/
 skills/funds-data-exam/
+skills/lab-standard-review/
+skills/pptx-generator/
+skills/standard-review/
+slides/
 
 # OS
 .DS_Store

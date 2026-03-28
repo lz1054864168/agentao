@@ -4,11 +4,11 @@ from unittest.mock import Mock, patch
 
 
 def _make_agent(thinking_callback=None):
-    with patch('chatagent.agent.LLMClient') as mock_llm_client:
+    with patch('agentao.agent.LLMClient') as mock_llm_client:
         mock_llm_client.return_value.logger = Mock()
         mock_llm_client.return_value.model = "gpt-4"
-        from chatagent.agent import ChatAgent
-        agent = ChatAgent(thinking_callback=thinking_callback)
+        from agentao.agent import Agentao
+        agent = Agentao(thinking_callback=thinking_callback)
     return agent
 
 

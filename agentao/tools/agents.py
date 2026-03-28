@@ -14,7 +14,7 @@ class CLIHelpAgentTool(Tool):
 
     @property
     def description(self) -> str:
-        return "Get help and guidance on using the ChatAgent CLI. Provides information about commands, features, and best practices."
+        return "Get help and guidance on using the Agentao CLI. Provides information about commands, features, and best practices."
 
     @property
     def parameters(self) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ class CLIHelpAgentTool(Tool):
     def execute(self, question: str) -> str:
         """Provide CLI help."""
         help_text = f"""
-ChatAgent CLI Help
+Agentao CLI Help
 ==================
 
 Question: {question}
@@ -45,9 +45,9 @@ Available Commands:
 - Type '/skill <skill_name>' to activate a skill
 
 Available Tools:
-- read_file: Read file contents
-- write_file: Write content to a file
-- replace: Edit a file by replacing text
+- read_file: Read file contents with line numbers (offset/limit for large files)
+- write_file: Write/append content to a file
+- replace: Edit a file by replacing text (supports replace_all)
 - list_directory: List directory contents
 - glob: Find files matching a pattern
 - search_file_content: Search for text in files

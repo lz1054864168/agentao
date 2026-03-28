@@ -1,12 +1,12 @@
-# CHATAGENT.md Auto-Loading Feature
+# AGENTAO.md Auto-Loading Feature
 
 ## Overview
 
-ChatAgent now automatically loads project-specific instructions from a `CHATAGENT.md` file at startup, similar to how Claude Code reads `CLAUDE.md`. This allows you to define project conventions, workflows, and best practices that the agent will follow throughout the session.
+Agentao now automatically loads project-specific instructions from a `AGENTAO.md` file at startup, similar to how Claude Code reads `CLAUDE.md`. This allows you to define project conventions, workflows, and best practices that the agent will follow throughout the session.
 
 ## How It Works
 
-1. **Automatic Detection**: When ChatAgent starts, it looks for `CHATAGENT.md` in the current working directory
+1. **Automatic Detection**: When Agentao starts, it looks for `AGENTAO.md` in the current working directory
 2. **Content Injection**: If found, the entire file content is injected into the system prompt
 3. **Session-Wide Scope**: Instructions apply to all interactions in that session
 4. **Graceful Fallback**: If the file doesn't exist, the agent works normally with default instructions
@@ -15,7 +15,7 @@ ChatAgent now automatically loads project-specific instructions from a `CHATAGEN
 
 ```
 your-project/
-├── CHATAGENT.md       # Place in the root of your project
+├── AGENTAO.md       # Place in the root of your project
 ├── .env
 ├── main.py
 └── ...
@@ -23,7 +23,7 @@ your-project/
 
 ## What to Include
 
-The `CHATAGENT.md` file can contain:
+The `AGENTAO.md` file can contain:
 
 - **Code Style**: Naming conventions, formatting rules, type hint requirements
 - **Project Structure**: Module organization, file locations, import patterns
@@ -34,7 +34,7 @@ The `CHATAGENT.md` file can contain:
 - **Package Management**: Use of uv, dependency management
 - **Common Commands**: Development, testing, debugging commands
 
-## Example CHATAGENT.md Structure
+## Example AGENTAO.md Structure
 
 ```markdown
 # Project Name Instructions
@@ -75,29 +75,29 @@ uv run python main.py     # Run agent
 
 ### Code Changes
 
-**File**: `chatagent/agent.py`
+**File**: `agentao/agent.py`
 
-1. Added `_load_project_instructions()` method to read `CHATAGENT.md`
+1. Added `_load_project_instructions()` method to read `AGENTAO.md`
 2. Modified `__init__()` to load instructions at startup
 3. Updated `_build_system_prompt()` to include instructions in the system prompt
 
 ### System Prompt Structure
 
-When `CHATAGENT.md` exists:
+When `AGENTAO.md` exists:
 ```
 === Project Instructions ===
-[Full content of CHATAGENT.md]
+[Full content of AGENTAO.md]
 
 === Agent Instructions ===
-[Default ChatAgent instructions]
+[Default Agentao instructions]
 
 === Available Skills ===
 [List of skills]
 ```
 
-When `CHATAGENT.md` doesn't exist:
+When `AGENTAO.md` doesn't exist:
 ```
-[Default ChatAgent instructions]
+[Default Agentao instructions]
 
 === Available Skills ===
 [List of skills]
@@ -105,36 +105,36 @@ When `CHATAGENT.md` doesn't exist:
 
 ## Testing
 
-Created `test_chatagent_md.py` with two test cases:
+Created `test_agentao_md.py` with two test cases:
 
-1. **test_chatagent_md_loading**: Verifies that the file is loaded and included in system prompt
-2. **test_chatagent_md_missing**: Verifies graceful handling when file doesn't exist
+1. **test_agentao_md_loading**: Verifies that the file is loaded and included in system prompt
+2. **test_agentao_md_missing**: Verifies graceful handling when file doesn't exist
 
 Run tests:
 ```bash
-uv run python test_chatagent_md.py
+uv run python test_agentao_md.py
 ```
 
 ## Usage Examples
 
 ### Basic Usage
 
-1. Create `CHATAGENT.md` in your project root
+1. Create `AGENTAO.md` in your project root
 2. Add your project-specific instructions
-3. Start ChatAgent
+3. Start Agentao
 4. The agent will automatically follow your instructions
 
 ### Multiple Projects
 
-Different projects can have different `CHATAGENT.md` files:
+Different projects can have different `AGENTAO.md` files:
 
 ```
 project-a/
-├── CHATAGENT.md    # Instructions for project A
+├── AGENTAO.md    # Instructions for project A
 └── ...
 
 project-b/
-├── CHATAGENT.md    # Different instructions for project B
+├── AGENTAO.md    # Different instructions for project B
 └── ...
 ```
 
@@ -150,38 +150,38 @@ The agent loads the instructions from the current working directory.
 
 ## Logging
 
-When `CHATAGENT.md` is loaded, you'll see a log entry:
+When `AGENTAO.md` is loaded, you'll see a log entry:
 ```
-INFO: Loaded project instructions from /path/to/CHATAGENT.md
+INFO: Loaded project instructions from /path/to/AGENTAO.md
 ```
 
-Check `chatagent.log` to verify the file was loaded successfully.
+Check `agentao.log` to verify the file was loaded successfully.
 
 ## Compatibility
 
-- **No Breaking Changes**: Existing setups without `CHATAGENT.md` continue to work
+- **No Breaking Changes**: Existing setups without `AGENTAO.md` continue to work
 - **Optional Feature**: File is completely optional
 - **No Configuration Needed**: Works automatically when file exists
 
 ## Comparison with CLAUDE.md
 
-| Feature | CLAUDE.md | CHATAGENT.md |
+| Feature | CLAUDE.md | AGENTAO.md |
 |---------|-----------|--------------|
-| Purpose | General instructions for any codebase | Project-specific ChatAgent instructions |
-| Read by | Claude Code (external tool) | ChatAgent itself |
-| Scope | Affects all Claude Code interactions | Affects ChatAgent sessions only |
-| Use case | General coding conventions | ChatAgent-specific workflows |
+| Purpose | General instructions for any codebase | Project-specific Agentao instructions |
+| Read by | Claude Code (external tool) | Agentao itself |
+| Scope | Affects all Claude Code interactions | Affects Agentao sessions only |
+| Use case | General coding conventions | Agentao-specific workflows |
 
 Both files can coexist:
 - `CLAUDE.md` - For general project instructions (read by Claude Code)
-- `CHATAGENT.md` - For ChatAgent-specific workflows and patterns
+- `AGENTAO.md` - For Agentao-specific workflows and patterns
 
 ## Future Enhancements
 
 Potential improvements:
-- Support for `.chatagent/` directory with multiple instruction files
+- Support for `.agentao/` directory with multiple instruction files
 - Template system for common project types
-- Per-user override files (`.chatagent.local.md`)
+- Per-user override files (`.agentao.local.md`)
 - Validation and linting for instruction files
 - Web UI for editing instructions
 
@@ -190,8 +190,8 @@ Potential improvements:
 ### Instructions Not Loading
 
 1. **Check file location**: Must be in current working directory
-2. **Check file name**: Must be exactly `CHATAGENT.md` (case-sensitive)
-3. **Check logs**: Look for "Loaded project instructions" in `chatagent.log`
+2. **Check file name**: Must be exactly `AGENTAO.md` (case-sensitive)
+3. **Check logs**: Look for "Loaded project instructions" in `agentao.log`
 4. **Check permissions**: Ensure file is readable
 
 ### File Found But Not Applied
@@ -204,23 +204,23 @@ Potential improvements:
 
 View the system prompt to verify instructions are loaded:
 ```python
-from chatagent.agent import ChatAgent
-agent = ChatAgent()
+from agentao.agent import Agentao
+agent = Agentao()
 print(agent._build_system_prompt())
 ```
 
 ## Contributing
 
 If you have suggestions for improving this feature:
-1. Test the change with `test_chatagent_md.py`
+1. Test the change with `test_agentao_md.py`
 2. Update documentation
 3. Submit a pull request
 
 ## Related Files
 
-- `CHATAGENT.md` - Example project instructions for this codebase
-- `test_chatagent_md.py` - Test suite for this feature
-- `chatagent/agent.py` - Implementation
+- `AGENTAO.md` - Example project instructions for this codebase
+- `test_agentao_md.py` - Test suite for this feature
+- `agentao/agent.py` - Implementation
 - `README.md` - Updated with feature documentation
 
 ---

@@ -1,4 +1,4 @@
-"""MCP (Model Context Protocol) support for ChatAgent."""
+"""MCP (Model Context Protocol) support for Agentao."""
 
 from .config import load_mcp_config
 from .client import McpClientManager

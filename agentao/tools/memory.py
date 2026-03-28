@@ -11,7 +11,7 @@ from .base import Tool
 class SaveMemoryTool(Tool):
     """Tool for saving important information to memory."""
 
-    def __init__(self, memory_file: str = ".chatagent/memory.json"):
+    def __init__(self, memory_file: str = ".agentao/memory.json"):
         """Initialize memory tool.
 
         Args:

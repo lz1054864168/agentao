@@ -17,7 +17,7 @@ uv add package-name
 uv run python script.py
 
 # Run the CLI
-uv run chatagent
+uv run agentao
 # or
 uv run python main.py
 ```
@@ -31,7 +31,7 @@ uv run python main.py
 ./run.sh
 
 # Or directly
-uv run chatagent
+uv run agentao
 
 # Or via Python
 uv run python main.py
@@ -67,7 +67,7 @@ Optional: `OPENAI_BASE_URL`, `OPENAI_MODEL`
 
 ### Three-Layer Design
 
-ChatAgent uses a **Tool-Agent-CLI** architecture:
+Agentao uses a **Tool-Agent-CLI** architecture:
 
 1. **CLI Layer** (`cli.py`): User interface with Rich, handles commands, manages session state (like `allow_all_tools`)
 2. **Agent Layer** (`agent.py`): Orchestrates LLM, tools, skills, and conversation history
@@ -133,8 +133,8 @@ class MyTool(Tool):
 
 The system prompt is dynamically built in `agent.py::_build_system_prompt()`:
 
-1. **CHATAGENT.md** (if exists in cwd) - Project-specific instructions
-2. **Agent Instructions** - Base ChatAgent capabilities
+1. **AGENTAO.md** (if exists in cwd) - Project-specific instructions
+2. **Agent Instructions** - Base Agentao capabilities
 3. **Current Date/Time** - Auto-injected: `YYYY-MM-DD HH:MM:SS (Day)`
 4. **Available Skills** - List with descriptions
 5. **Active Skills Context** - Full documentation of activated skills
@@ -146,7 +146,7 @@ This composition happens on every `chat()` call to keep skills context fresh.
 ```python
 # agent.py::chat()
 1. User message added to self.messages
-2. System prompt built (includes CHATAGENT.md, date, skills)
+2. System prompt built (includes AGENTAO.md, date, skills)
 3. LLM called with messages + tools
 4. Loop (max 100 iterations):
    a. If tool_calls: execute each tool
@@ -160,7 +160,7 @@ This composition happens on every `chat()` call to keep skills context fresh.
 
 ### Logging System
 
-**Complete LLM interaction logging** to `chatagent.log`:
+**Complete LLM interaction logging** to `agentao.log`:
 - Every request/response (full content, no truncation)
 - All tool calls with formatted JSON arguments
 - Tool results
@@ -185,9 +185,9 @@ Session state `allow_all_tools` persists across tool confirmations within one se
 
 ### MCP (Model Context Protocol) System
 
-ChatAgent supports connecting to external MCP servers that provide additional tools.
+Agentao supports connecting to external MCP servers that provide additional tools.
 
-**Configuration**: `.chatagent/mcp.json` (project) and `~/.chatagent/mcp.json` (global):
+**Configuration**: `.agentao/mcp.json` (project) and `~/.agentao/mcp.json` (global):
 ```json
 {
   "mcpServers": {
@@ -212,7 +212,7 @@ ChatAgent supports connecting to external MCP servers that provide additional to
 
 **Architecture**:
 ```
-.chatagent/mcp.json → McpConfig → McpClientManager → McpClient (per server)
+.agentao/mcp.json → McpConfig → McpClientManager → McpClient (per server)
                                                           ↓
                                                    list_tools() / call_tool()
                                                           ↓
@@ -220,11 +220,11 @@ ChatAgent supports connecting to external MCP servers that provide additional to
 ```
 
 **Key files**:
-- `chatagent/mcp/config.py` - Config loading, env var expansion
-- `chatagent/mcp/client.py` - McpClient (single server), McpClientManager (multi-server)
-- `chatagent/mcp/tool.py` - McpTool wrapper adapting MCP tools to Tool base class
+- `agentao/mcp/config.py` - Config loading, env var expansion
+- `agentao/mcp/client.py` - McpClient (single server), McpClientManager (multi-server)
+- `agentao/mcp/tool.py` - McpTool wrapper adapting MCP tools to Tool base class
 
-**Async bridge**: MCP SDK is async-only; McpClientManager uses a dedicated event loop with `run_until_complete()` to bridge into sync ChatAgent code.
+**Async bridge**: MCP SDK is async-only; McpClientManager uses a dedicated event loop with `run_until_complete()` to bridge into sync Agentao code.
 
 **CLI**: `/mcp list`, `/mcp add <name> <command|url>`, `/mcp remove <name>`
 
@@ -232,7 +232,7 @@ ChatAgent supports connecting to external MCP servers that provide additional to
 
 ### Adding a Tool
 
-1. Create tool class in `chatagent/tools/<module>.py`
+1. Create tool class in `agentao/tools/<module>.py`
 2. Implement `Tool` interface (name, description, parameters, execute)
 3. Set `requires_confirmation=True` if dangerous:
    - Shell commands (arbitrary execution)
@@ -275,7 +275,7 @@ def confirm_tool_execution(self, name, desc, args) -> bool:
     # Show menu, get user choice
     # Return True/False
 
-self.agent = ChatAgent(
+self.agent = Agentao(
     confirmation_callback=self.confirm_tool_execution
 )
 ```
@@ -301,7 +301,7 @@ Supports: `1`, `2`, `3`, `Esc`, `Ctrl+C`. Invalid keys are silently ignored.
 
 ### Memory System
 
-Persistent JSON storage in `.chatagent_memory.json` (gitignored):
+Persistent JSON storage in `.agentao_memory.json` (gitignored):
 ```python
 # tools/memory.py
 {"memories": [{"key": "...", "value": "...", "tags": [...], "timestamp": "..."}]}
@@ -326,8 +326,8 @@ See `docs/features/memory-management.md` for detailed documentation.
 ## File Organization
 
 ```
-chatagent/
-├── chatagent/           # Main package
+agentao/
+├── agentao/           # Main package
 │   ├── agent.py        # Core orchestration
 │   ├── cli.py          # CLI interface with Rich
 │   ├── llm/
@@ -355,7 +355,7 @@ chatagent/
 │   ├── implementation/ # Technical implementation details
 │   └── dev-notes/      # Development notes (archived)
 ├── CLAUDE.md           # Claude Code guidance
-├── CHATAGENT.md        # Project-specific instructions
+├── AGENTAO.md        # Project-specific instructions
 └── main.py            # Entry point
 ```
 

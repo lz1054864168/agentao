@@ -53,12 +53,20 @@ class AgentToolWrapper(Tool):
         llm_config: Dict[str, Any],
         confirmation_callback: Optional[Callable] = None,
         step_callback: Optional[Callable] = None,
+        output_callback: Optional[Callable] = None,
+        tool_complete_callback: Optional[Callable] = None,
+        ask_user_callback: Optional[Callable] = None,
+        max_context_tokens: Optional[int] = None,
     ):
         self._definition = definition
         self._all_tools = all_tools
         self._llm_config = llm_config
         self._confirmation_callback = confirmation_callback
         self._step_callback = step_callback
+        self._output_callback = output_callback
+        self._tool_complete_callback = tool_complete_callback
+        self._ask_user_callback = ask_user_callback
+        self._max_context_tokens = max_context_tokens
 
     @property
     def name(self) -> str:
@@ -83,7 +91,7 @@ class AgentToolWrapper(Tool):
 
     def execute(self, task: str) -> str:
         # Lazy import to avoid circular dependency
-        from ..agent import ChatAgent
+        from ..agent import Agentao
         from ..skills import SkillManager
 
         # 1. Build scoped ToolRegistry
@@ -94,14 +102,19 @@ class AgentToolWrapper(Tool):
                 scoped_registry.register(tool)
         scoped_registry.register(CompleteTaskTool())
 
-        # 2. Create sub-agent ChatAgent
-        sub_agent = ChatAgent(
+        # 2. Create sub-agent Agentao — inherit parent's resource limits and callbacks
+        agent_name = self._definition["name"]
+        sub_agent = Agentao(
             api_key=self._llm_config["api_key"],
             base_url=self._llm_config.get("base_url"),
             model=self._llm_config.get("model"),
             confirmation_callback=self._confirmation_callback,
             step_callback=self._make_prefixed_step_callback(),
-            # No thinking_callback or ask_user_callback for sub-agents
+            output_callback=self._output_callback,
+            tool_complete_callback=self._tool_complete_callback,
+            ask_user_callback=self._ask_user_callback,
+            max_context_tokens=self._max_context_tokens or 200_000,
+            # thinking_callback intentionally omitted for sub-agents
         )
 
         # 3. Replace tools and disable skills/agents for the sub-agent

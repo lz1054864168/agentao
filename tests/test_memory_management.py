@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from chatagent.tools.memory import (
+from agentao.tools.memory import (
     SaveMemoryTool,
     SearchMemoryTool,
     DeleteMemoryTool,
@@ -32,7 +32,7 @@ def test_memory_management():
         print("Test 1: Saving memories...")
         result = save_tool.execute(
             key="project_name",
-            value="ChatAgent",
+            value="Agentao",
             tags=["project", "important"]
         )
         assert "Saved memory" in result or "Updated memory" in result

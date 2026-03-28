@@ -49,7 +49,7 @@ Active skills: 0
 启动时显示当前使用的模型：
 
 ```
-ChatAgent
+Agentao
 
 Current Model: claude-sonnet-4-5  ← 新增
 
@@ -59,7 +59,7 @@ Commands:
 
 ## 代码更改
 
-### 1. ChatAgent (`agent.py`)
+### 1. Agentao (`agent.py`)
 
 **新增方法**：
 
@@ -171,7 +171,7 @@ elif command == "model":
 ```bash
 $ uv run python main.py
 
-Welcome to ChatAgent!
+Welcome to Agentao!
 Current Model: claude-sonnet-4-5
 
 You: /model
@@ -294,7 +294,7 @@ $ uv run python test_model_command.py
 Testing Model Switching Functionality
 ======================================================================
 
-1. Initializing ChatAgent with default model...
+1. Initializing Agentao with default model...
 ✓ Default model: claude-sonnet-4-5
 
 2. Listing available models...
@@ -346,10 +346,10 @@ self.llm.model = "gpt-4"  # 直接修改
 
 ### 日志记录
 
-模型切换记录到 `chatagent.log`：
+模型切换记录到 `agentao.log`：
 
 ```
-2026-02-09 15:30:45 - chatagent.llm - INFO - Model changed from claude-sonnet-4-5 to gpt-4
+2026-02-09 15:30:45 - agentao.llm - INFO - Model changed from claude-sonnet-4-5 to gpt-4
 ```
 
 ### 命令解析
@@ -415,8 +415,8 @@ You: /model my-custom-model  # ✓ 仍然有效
 - `test_model_command.py` - 测试脚本
 
 ### 修改文件
-- `chatagent/agent.py` - 添加模型方法
-- `chatagent/cli.py` - 添加 `/model` 命令
+- `agentao/agent.py` - 添加模型方法
+- `agentao/cli.py` - 添加 `/model` 命令
 - `README.md` - 更新文档
 - `QUICKSTART.md` - 更新文档
 

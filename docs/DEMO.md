@@ -1,6 +1,6 @@
-# ChatAgent - Interactive Demo
+# Agentao - Interactive Demo
 
-This guide walks you through the key features of ChatAgent with real examples.
+This guide walks you through the key features of Agentao with real examples.
 
 ## Setup (30 seconds)
 
@@ -12,7 +12,7 @@ cp .env.example .env
 # 2. Install dependencies
 uv sync
 
-# 3. Run ChatAgent
+# 3. Run Agentao
 ./run.sh
 ```
 

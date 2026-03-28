@@ -23,7 +23,7 @@ The skills system has been completely redesigned to load skills dynamically from
 ### Skills Directory Structure
 
 ```
-/Users/bluerose/Documents/Data/ToDo/2024-AGI/src/chatagent/skills/
+/Users/bluerose/Documents/Data/ToDo/2024-AGI/src/agentao/skills/
 ├── algorithmic-art/
 │   └── SKILL.md
 ├── brand-guidelines/
@@ -83,7 +83,7 @@ Each `SKILL.md` file contains:
 ### Code Changes
 
 **Updated Files:**
-1. `chatagent/skills/manager.py` - Complete rewrite
+1. `agentao/skills/manager.py` - Complete rewrite
    - New `_parse_yaml_frontmatter()` method
    - New `_load_skills()` implementation
    - Scans subdirectories for SKILL.md files
@@ -91,7 +91,7 @@ Each `SKILL.md` file contains:
    - Extracts metadata and content
    - Added `get_skill_content()` for full documentation access
 
-2. `chatagent/cli.py` - Enhanced skill display
+2. `agentao/cli.py` - Enhanced skill display
    - Shows skill title and description
    - Better formatted output
    - Shows loaded skill count
@@ -144,7 +144,7 @@ $ uv run python test_skills.py
 ### API Usage
 
 ```python
-from chatagent.skills import SkillManager
+from agentao.skills import SkillManager
 
 # Initialize (auto-discovers skills)
 manager = SkillManager()
@@ -176,7 +176,7 @@ manager.reload_skills()
 ### CLI Usage
 
 ```bash
-# Start ChatAgent
+# Start Agentao
 uv run python main.py
 
 # List skills
@@ -240,7 +240,7 @@ uv run python test_imports.py
 # Test skills loading
 uv run python test_skills.py
 
-# Start ChatAgent
+# Start Agentao
 uv run python main.py
 ```
 

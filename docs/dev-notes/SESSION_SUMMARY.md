@@ -2,7 +2,7 @@
 
 ## 概述
 
-本次会话完成了三个重要功能改进，显著提升了 ChatAgent 的用户体验和安全性。
+本次会话完成了三个重要功能改进，显著提升了 Agentao 的用户体验和安全性。
 
 ## 改进列表
 
@@ -16,7 +16,7 @@
 - 添加状态显示和重置命令
 
 **文件**:
-- `chatagent/cli.py` - 添加菜单和会话状态管理
+- `agentao/cli.py` - 添加菜单和会话状态管理
 - `test_menu_confirmation.py` - 测试菜单功能
 - `MENU_CONFIRMATION_UPDATE.md` - 功能文档
 
@@ -31,7 +31,7 @@
 
 **文件**:
 - `pyproject.toml` - 添加 readchar 依赖
-- `chatagent/cli.py` - 使用 readchar.readkey()
+- `agentao/cli.py` - 使用 readchar.readkey()
 - `test_readchar_confirmation.py` - 测试单键输入
 - `READCHAR_IMPLEMENTATION.md` - 实现文档
 
@@ -45,7 +45,7 @@
 - 明确的反馈消息
 
 **文件**:
-- `chatagent/cli.py` - 修改 /clear 命令处理
+- `agentao/cli.py` - 修改 /clear 命令处理
 - `test_clear_resets_confirm.py` - 测试重置行为
 - `CLEAR_RESETS_CONFIRMATION.md` - 功能说明
 
@@ -55,7 +55,7 @@
 
 | 文件 | 改动 | 说明 |
 |------|------|------|
-| `chatagent/cli.py` | +76 行 | 菜单、readchar、重置逻辑 |
+| `agentao/cli.py` | +76 行 | 菜单、readchar、重置逻辑 |
 | `README.md` | +21 行 | 更新功能说明 |
 | `pyproject.toml` | +1 行 | 添加 readchar 依赖 |
 | `uv.lock` | 更新 | 依赖锁定文件 |
@@ -205,7 +205,7 @@ if key == "1":
 ### 2. 会话状态管理
 
 ```python
-class ChatAgentCLI:
+class AgentaoCLI:
     def __init__(self):
         self.allow_all_tools = False  # 会话状态
 ```

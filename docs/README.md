@@ -1,6 +1,6 @@
-# ChatAgent Documentation
+# Agentao Documentation
 
-This directory contains documentation for the ChatAgent project.
+This directory contains documentation for the Agentao project.
 
 ## Structure
 
@@ -18,7 +18,7 @@ User-facing guides and references:
 ### `/features` - Feature Documentation
 Detailed documentation for major features, including design decisions and implementation details:
 
-- [CHATAGENT_MD_FEATURE.md](features/CHATAGENT_MD_FEATURE.md) - CHATAGENT.md auto-loading for project-specific instructions
+- [AGENTAO_MD_FEATURE.md](features/AGENTAO_MD_FEATURE.md) - AGENTAO.md auto-loading for project-specific instructions
 - [TOOL_CONFIRMATION_FEATURE.md](features/TOOL_CONFIRMATION_FEATURE.md) - User confirmation system for Shell & Web tools
 - [DATE_CONTEXT_FEATURE.md](features/DATE_CONTEXT_FEATURE.md) - Current date/time injection in system prompt
 

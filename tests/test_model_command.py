@@ -6,15 +6,15 @@ import os
 if not os.getenv("OPENAI_API_KEY"):
     os.environ["OPENAI_API_KEY"] = "test-key"
 
-from chatagent.agent import ChatAgent
+from agentao.agent import Agentao
 
 print("=" * 70)
 print("Testing Model Switching Functionality")
 print("=" * 70)
 
 # Initialize agent
-print("\n1. Initializing ChatAgent with default model...")
-agent = ChatAgent()
+print("\n1. Initializing Agentao with default model...")
+agent = Agentao()
 print(f"✓ Default model: {agent.get_current_model()}")
 
 # List available models
@@ -52,7 +52,7 @@ print("\n" + "=" * 70)
 print("✓ All model tests passed!")
 print("=" * 70)
 
-print("\n📋 Usage in ChatAgent:")
+print("\n📋 Usage in Agentao:")
 print("  /model                    - Show current and available models")
 print("  /model gpt-4              - Switch to GPT-4")
 print("  /model claude-sonnet-4-5  - Switch to Claude Sonnet")

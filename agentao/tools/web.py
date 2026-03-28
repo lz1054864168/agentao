@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 from .base import Tool
 
-logger = logging.getLogger("chatagent.tools.web")
+logger = logging.getLogger("agentao.tools.web")
 
 try:
     from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig

@@ -2,13 +2,13 @@
 
 import os
 from dotenv import load_dotenv
-from chatagent import ChatAgent
+from agentao import Agentao
 
 def test_multi_turn_tool_calls():
     """Test that agent can handle multiple rounds of tool calls."""
     load_dotenv()
 
-    agent = ChatAgent(
+    agent = Agentao(
         api_key=os.getenv("OPENAI_API_KEY"),
         base_url=os.getenv("OPENAI_BASE_URL"),
         model=os.getenv("OPENAI_MODEL"),
