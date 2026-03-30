@@ -50,7 +50,9 @@ skills/funds-data-exam/
 skills/lab-standard-review/
 skills/pptx-generator/
 skills/standard-review/
+skills/*-ppt/
 slides/
+ppt/
 
 # OS
 .DS_Store

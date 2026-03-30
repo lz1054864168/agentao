@@ -64,7 +64,7 @@ _SLASH_COMMANDS = [
     '/memory', '/memory clear', '/memory delete', '/memory list',
     '/memory search', '/memory tag', '/model', '/permission', '/provider', '/quit',
     '/reset-confirm', '/sessions', '/sessions delete', '/sessions delete all', '/sessions list', '/sessions resume',
-    '/skills', '/skills disable', '/skills enable', '/skills reload', '/status',
+    '/skills', '/skills disable', '/skills enable', '/skills reload', '/status', '/stream', '/temperature',
     '/tools',
 ]
 
@@ -78,6 +78,7 @@ _SLASH_COMMAND_HINTS = {
     '/skills enable': '<skill-name>',
     '/skills disable': '<skill-name>',
     '/context limit': '<tokens>',
+    '/temperature': '<value>',
     '/sessions resume': '<session-id>',
     '/sessions delete': '<session-id>',
     '/mcp add': '<name> <command|url>',
@@ -115,6 +116,7 @@ class AgentaoCLI:
         self._streaming_output = False  # Track if we're in streaming shell output mode
         self._llm_streamed = False  # Track if LLM response text was already streamed
         self.markdown_mode = True  # Render responses as Markdown (toggle with /markdown)
+        self.stream_mode = True  # LLM response streaming (toggle with /stream)
         self._streamed_buffer: str = ""  # Accumulate streaming chunks for final Markdown render
         provider = os.getenv("LLM_PROVIDER", "OPENAI").strip().upper()
         self.current_provider = provider  # Track active provider name
@@ -458,6 +460,7 @@ All commands start with `/`:
   - Also resets "allow all" mode to prompt for each tool
   - `/clear all` - Also clear all saved memories
 - `/status` - Show conversation status
+- `/temperature [value]` - Show or set LLM temperature (0.0-2.0)
 - `/skills` - List available skills
 - `/memory [subcommand] [arg]` - Manage saved memories
   - `/memory` or `/memory list` - Show all saved memories (with tag summary)
@@ -477,6 +480,7 @@ All commands start with `/`:
   - `/confirm prompt` - Restore prompt mode (ask each time)
 - `/reset-confirm` - Reset tool confirmation to prompt mode (legacy alias)
 - `/markdown` - Toggle Markdown rendering ON/OFF (default: ON)
+- `/stream` - Toggle LLM streaming mode ON/OFF (default: ON)
 - `/exit` or `/quit` - Exit the program
 
 **Available Tools:**
@@ -552,6 +556,10 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
         # Show markdown mode
         md_state = "[green]ON[/green]" if self.markdown_mode else "[yellow]OFF[/yellow]"
         console.print(f"[info]Markdown Rendering:[/info] {md_state}")
+
+        # Show stream mode
+        stream_state = "[green]ON[/green]" if self.stream_mode else "[yellow]OFF[/yellow]"
+        console.print(f"[info]LLM Streaming:[/info] {stream_state}")
         console.print()
 
     def show_memories(self, subcommand: str = "", arg: str = ""):
@@ -754,6 +762,25 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
             # Switch to specified model
             result = self.agent.set_model(args)
             console.print(f"\n[success]{result}[/success]\n")
+
+    def handle_temperature_command(self, args: str):
+        """Handle /temperature command — show or set LLM temperature."""
+        args = args.strip()
+        if not args:
+            console.print(f"\n[info]Temperature:[/info] [cyan]{self.agent.llm.temperature}[/cyan]")
+            console.print("[dim]Usage: /temperature <value>  (0.0 - 2.0)[/dim]\n")
+            return
+        try:
+            value = float(args)
+        except ValueError:
+            console.print(f"\n[error]Invalid temperature value: {args}[/error]\n")
+            return
+        if not 0.0 <= value <= 2.0:
+            console.print("\n[error]Temperature must be between 0.0 and 2.0[/error]\n")
+            return
+        old = self.agent.llm.temperature
+        self.agent.llm.temperature = value
+        console.print(f"\n[success]Temperature changed from {old} to {value}[/success]\n")
 
     def handle_agent_command(self, args: str):
         """Handle /agent command.
@@ -1227,12 +1254,26 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
                         console.print(f"\n[cyan]Markdown rendering: {state}[/cyan]\n")
                         continue
 
+                    elif command == "stream":
+                        self.stream_mode = not self.stream_mode
+                        if self.stream_mode:
+                            self.agent.llm_text_callback = self.on_llm_text
+                            console.print("\n[cyan]LLM streaming: ON[/cyan]\n")
+                        else:
+                            self.agent.llm_text_callback = None
+                            console.print("\n[cyan]LLM streaming: OFF[/cyan]\n")
+                        continue
+
                     elif command == "permission":
                         self.handle_permission_command(args)
                         continue
 
                     elif command == "sessions":
                         self.handle_sessions_command(args)
+                        continue
+
+                    elif command == "temperature":
+                        self.handle_temperature_command(args)
                         continue
 
                     elif command == "tools":
@@ -1266,7 +1307,14 @@ Type `/skills` to see available skills, or ask the agent to activate a specific 
                 continue
 
             except Exception as e:
-                console.print(f"\n[error]Error: {str(e)}[/error]\n")
+                import traceback
+                error_msg = str(e)
+                cause = e.__cause__
+                if cause:
+                    error_msg += f"\n  Caused by: {type(cause).__name__}: {cause}"
+                console.print(f"\n[error]Error: {error_msg}[/error]")
+                console.print("[dim]See agentao.log for full traceback.[/dim]\n")
+                self.agent.llm.logger.error(f"Unhandled error in chat loop:\n{traceback.format_exc()}")
                 continue
 
 

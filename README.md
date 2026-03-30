@@ -235,6 +235,12 @@ OPENAI_API_KEY=your-api-key-here
 
 # Optional: Context window limit in tokens (default: 200000)
 # AGENTAO_CONTEXT_TOKENS=200000
+
+# Optional: Maximum tokens the LLM may generate per response (default: 65536)
+# LLM_MAX_TOKENS=65536
+
+# Optional: LLM sampling temperature (default: 0.2)
+# LLM_TEMPERATURE=0.2
 ```
 
 ### MCP Server Configuration
@@ -374,6 +380,7 @@ All commands start with `/`. Type `/` and press **Tab** for autocomplete.
 | `/confirm` | Show current tool confirmation mode |
 | `/confirm all` | Enable allow-all mode (tools execute without prompting) |
 | `/confirm prompt` | Restore prompt mode (ask before each tool) |
+| `/stream` | Toggle LLM streaming mode ON/OFF (default: ON); disable when proxy/network drops streaming connections |
 | `/sessions` | List saved sessions |
 | `/sessions resume <id>` | Resume a saved session |
 | `/sessions delete <id>` | Delete a specific session |

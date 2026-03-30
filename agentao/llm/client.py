@@ -96,6 +96,8 @@ class LLMClient:
         self.base_url = base_url or os.getenv(f"{provider}_BASE_URL")
         self.model = model or os.getenv(f"{provider}_MODEL", "claude-sonnet-4-5")
         self.temperature = float(os.getenv("LLM_TEMPERATURE", "0.2"))
+        _max = os.getenv("LLM_MAX_TOKENS")
+        self.max_tokens: Optional[int] = int(_max) if _max else 65536
 
         self.client = OpenAI(
             api_key=self.api_key,
@@ -209,8 +211,8 @@ class LLMClient:
             return response
 
         except Exception as e:
-            # Log error
-            self.logger.error(f"[{request_id}] API call failed: {str(e)}")
+            import traceback
+            self.logger.error(f"[{request_id}] API call failed: {str(e)}\n{traceback.format_exc()}")
             raise
 
     def _log_request(self, request_id: str, kwargs: Dict[str, Any]) -> None:
@@ -452,7 +454,8 @@ class LLMClient:
             return response
 
         except Exception as e:
-            self.logger.error(f"[{request_id}] Streaming API call failed: {str(e)}")
+            import traceback
+            self.logger.error(f"[{request_id}] Streaming API call failed: {str(e)}\n{traceback.format_exc()}")
             raise
 
     def _log_response(self, request_id: str, response: Any) -> None:

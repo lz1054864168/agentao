@@ -248,7 +248,7 @@ class ShellTool(Tool):
                         pass  # Never let display errors kill the reader thread
 
         t_out = threading.Thread(target=_read, args=(proc.stdout, stdout_chunks, callback), daemon=True)
-        t_err = threading.Thread(target=_read, args=(proc.stderr, stderr_chunks), daemon=True)
+        t_err = threading.Thread(target=_read, args=(proc.stderr, stderr_chunks, callback), daemon=True)
         t_out.start()
         t_err.start()
 
