@@ -183,6 +183,9 @@ class LLMClient:
         self.request_count += 1
         request_id = f"req_{self.request_count}"
 
+        # Adjust max_tokens for the specific model/provider
+        adjusted_max_tokens = self._get_max_tokens_for_model(max_tokens)
+
         # Build request parameters
         kwargs = {
             "model": self.model,
@@ -194,8 +197,8 @@ class LLMClient:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
 
-        if max_tokens:
-            kwargs["max_tokens"] = max_tokens
+        if adjusted_max_tokens:
+            kwargs["max_tokens"] = adjusted_max_tokens
 
         # Log request
         self._log_request(request_id, kwargs)
@@ -342,6 +345,28 @@ class LLMClient:
             return True
         return False
 
+    def _get_max_tokens_for_model(self, requested_max_tokens: Optional[int]) -> Optional[int]:
+        """Return max_tokens value adjusted for the specific model/provider.
+
+        Different models have different max_tokens limits. This method ensures
+        the value stays within the allowed range for the current model.
+
+        Args:
+            requested_max_tokens: The requested max_tokens value (may be None)
+
+        Returns:
+            Adjusted max_tokens value or None to use model default
+        """
+        # Use env var or default if not specified
+        max_tokens = requested_max_tokens if requested_max_tokens else self.max_tokens
+
+        # DeepSeek models have a limit of 8192 for max_tokens
+        if self.model and "deepseek" in self.model.lower():
+            return min(max_tokens, 8192) if max_tokens else 8192
+
+        # Default: no adjustment (Claude and most others support large values)
+        return max_tokens
+
     def chat_stream(
         self,
         messages: List[Dict[str, Any]],
@@ -382,6 +407,9 @@ class LLMClient:
         self.request_count += 1
         request_id = f"req_{self.request_count}"
 
+        # Adjust max_tokens for the specific model/provider
+        adjusted_max_tokens = self._get_max_tokens_for_model(max_tokens)
+
         kwargs = {
             "model": self.model,
             "messages": messages,
@@ -391,8 +419,8 @@ class LLMClient:
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
-        if max_tokens:
-            kwargs["max_tokens"] = max_tokens
+        if adjusted_max_tokens:
+            kwargs["max_tokens"] = adjusted_max_tokens
 
         # Log without the stream flag (matches non-streaming log format)
         log_kwargs = {k: v for k, v in kwargs.items() if k != "stream"}
